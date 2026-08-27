@@ -19,6 +19,18 @@ export const GithubProjectColumnSchema = z.object({
   issues: z.array(GithubIssueCardSchema),
 });
 
+export const GithubProjectSummarySchema = z.object({
+  owner: z.string(),
+  number: z.number().int().positive(),
+  title: z.string(),
+  url: z.string().url(),
+  itemCount: z.number().int().nonnegative(),
+});
+
+export const GithubProjectListResultSchema = z.object({
+  projects: z.array(GithubProjectSummarySchema),
+});
+
 export const GithubProjectBoardScanResultSchema = z.object({
   scannedAt: z.string(),
   project: z.object({
@@ -35,12 +47,20 @@ export const GithubProjectBoardScanResultSchema = z.object({
 
 export const githubProjectBoardScan = defineRpc({
   name: "github-project-board.scan",
-  input: z.object({}),
+  input: z.object({ number: z.number().int().positive() }),
   output: GithubProjectBoardScanResultSchema,
+});
+
+export const githubProjectBoardList = defineRpc({
+  name: "github-project-board.list",
+  input: z.object({}),
+  output: GithubProjectListResultSchema,
 });
 
 export type GithubIssueCard = z.infer<typeof GithubIssueCardSchema>;
 export type GithubProjectColumn = z.infer<typeof GithubProjectColumnSchema>;
+export type GithubProjectSummary = z.infer<typeof GithubProjectSummarySchema>;
+export type GithubProjectListResult = z.infer<typeof GithubProjectListResultSchema>;
 export type GithubProjectBoardScanResult = z.infer<
   typeof GithubProjectBoardScanResultSchema
 >;

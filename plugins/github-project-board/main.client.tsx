@@ -13,15 +13,12 @@ import {
   type ViewStyle,
 } from "react-native";
 import {
+  githubProjectBoardList,
   githubProjectBoardScan,
   type GithubIssueCard,
   type GithubProjectColumn,
 } from "./github-project-board.shared";
-import {
-  countColumnIssues,
-  filterProjectColumns,
-  IMPORTANT_REPOSITORIES,
-} from "./github-project-board.view";
+import { countColumnIssues, filterProjectColumns } from "./github-project-board.view";
 
 function createStyles(theme: PluginTheme, compact: boolean) {
   return StyleSheet.create({
@@ -106,16 +103,16 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       borderRadius: 2,
       backgroundColor: theme.colors.foregroundMuted,
     },
-    repositoryFilterSection: { gap: 8 },
-    repositoryFilterLabel: {
+    projectSelectorSection: { gap: 8 },
+    projectSelectorLabel: {
       color: theme.colors.foregroundMuted,
       fontSize: 10,
       lineHeight: 15,
       fontWeight: "500",
     },
-    repositoryFilterScroll: { width: "100%" },
-    repositoryFilterList: { flexDirection: "row", gap: 8, paddingRight: 4 },
-    repositoryFilter: {
+    projectSelectorScroll: { width: "100%" },
+    projectSelectorList: { flexDirection: "row", gap: 8, paddingRight: 4 },
+    projectSelector: {
       minHeight: 44,
       flexDirection: "row",
       alignItems: "center",
@@ -126,15 +123,15 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       borderWidth: 1,
       borderColor: theme.colors.foregroundMuted,
     },
-    repositoryFilterActive: { borderColor: theme.colors.accent },
-    repositoryFilterText: {
+    projectSelectorActive: { borderColor: theme.colors.accent },
+    projectSelectorText: {
       color: theme.colors.foregroundMuted,
       fontSize: 12,
       lineHeight: 18,
       fontWeight: "500",
     },
-    repositoryFilterTextActive: { color: theme.colors.foreground },
-    repositoryFilterCount: {
+    projectSelectorTextActive: { color: theme.colors.foreground },
+    projectSelectorCount: {
       color: theme.colors.foregroundMuted,
       fontSize: 10,
       lineHeight: 15,
@@ -406,15 +403,34 @@ function FullScreenState({ message, onRetry, retrying, styles, theme, title }: {
 }
 
 export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
+  const listProjects = useRpc(githubProjectBoardList);
   const scan = useRpc(githubProjectBoardScan);
   const [search, setSearch] = useState("");
-  const [selectedRepository, setSelectedRepository] = useState<string | null>(null);
+  const [selectedProjectNumber, setSelectedProjectNumber] = useState<number | null>(null);
   const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
   const styles = useMemo(() => createStyles(theme, layout.compact), [theme, layout.compact]);
+  const projectListQuery = useQuery({
+    queryKey: ["github-project-board", "list", host.id],
+    queryFn: () => listProjects({}),
+    staleTime: Infinity,
+    retry: false,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+  const projects = projectListQuery.data?.projects ?? [];
+  const selectedProject =
+    projects.find((project) => project.number === selectedProjectNumber) ?? projects[0] ?? null;
   const query = useQuery({
-    queryKey: ["github-project-board", "scan", host.id],
-    queryFn: () => scan({}),
+    queryKey: ["github-project-board", "scan", host.id, selectedProject?.number],
+    queryFn: () => {
+      if (!selectedProject) {
+        throw new Error("조회할 GitHub Project가 없습니다.");
+      }
+      return scan({ number: selectedProject.number });
+    },
+    enabled: selectedProject !== null,
     staleTime: Infinity,
     retry: false,
     refetchInterval: false,
@@ -432,21 +448,49 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
   }, []);
 
   const filteredColumns = useMemo(
-    () => filterProjectColumns(query.data?.columns ?? [], search, selectedRepository),
-    [query.data?.columns, search, selectedRepository],
-  );
-  const repositoryIssueCounts = useMemo(
-    () => new Map<string, number>(
-      IMPORTANT_REPOSITORIES.map((repository) => [
-        repository,
-        countColumnIssues(filterProjectColumns(query.data?.columns ?? [], "", repository)),
-      ] as const),
-    ),
-    [query.data?.columns],
+    () => filterProjectColumns(query.data?.columns ?? [], search),
+    [query.data?.columns, search],
   );
   const visibleIssueCount = countColumnIssues(filteredColumns);
   const selectedColumn =
     filteredColumns.find((column) => column.id === selectedColumnId) ?? filteredColumns[0] ?? null;
+
+  if (projectListQuery.isPending && !projectListQuery.data) {
+    return (
+      <FullScreenState
+        message="선택할 수 있는 개인 GitHub Project를 읽고 있습니다."
+        styles={styles}
+        theme={theme}
+        title="Project 목록을 불러오는 중"
+      />
+    );
+  }
+
+  if (!projectListQuery.data) {
+    return (
+      <FullScreenState
+        message={errorMessage(projectListQuery.error)}
+        onRetry={() => void projectListQuery.refetch()}
+        retrying={projectListQuery.isFetching}
+        styles={styles}
+        theme={theme}
+        title="GitHub Project 목록을 불러오지 못했습니다"
+      />
+    );
+  }
+
+  if (!selectedProject) {
+    return (
+      <FullScreenState
+        message="GitHub에서 개인 Project를 만든 뒤 다시 시도하세요."
+        onRetry={() => void projectListQuery.refetch()}
+        retrying={projectListQuery.isFetching}
+        styles={styles}
+        theme={theme}
+        title="표시할 GitHub Project가 없습니다"
+      />
+    );
+  }
 
   if (query.isPending && !query.data) {
     return (
@@ -474,10 +518,7 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
 
   const result = query.data;
   const hasSearch = search.trim().length > 0;
-  const hasRepositoryFilter = selectedRepository !== null;
-  const selectedRepositoryIssueCount = selectedRepository
-    ? repositoryIssueCounts.get(selectedRepository) ?? 0
-    : result.issueCount;
+  const refreshing = projectListQuery.isFetching || query.isFetching;
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -501,16 +542,19 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="GitHub Project 새로고침"
-                accessibilityState={{ disabled: query.isFetching }}
-                disabled={query.isFetching}
-                onPress={() => void query.refetch()}
+                accessibilityState={{ disabled: refreshing }}
+                disabled={refreshing}
+                onPress={() => {
+                  void projectListQuery.refetch();
+                  void query.refetch();
+                }}
                 style={({ pressed }) => [
                   styles.primaryButton,
                   pressed ? styles.pressed : null,
-                  query.isFetching ? styles.disabled : null,
+                  refreshing ? styles.disabled : null,
                 ]}
               >
-                <Text style={styles.primaryButtonText}>{query.isFetching ? "조회 중…" : "새로고침"}</Text>
+                <Text style={styles.primaryButtonText}>{refreshing ? "조회 중…" : "새로고침"}</Text>
               </Pressable>
             </View>
           </View>
@@ -523,43 +567,41 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
           </View>
         </View>
 
-        <View style={styles.repositoryFilterSection}>
-          <Text style={styles.repositoryFilterLabel}>중요 저장소</Text>
+        <View style={styles.projectSelectorSection}>
+          <Text style={styles.projectSelectorLabel}>GitHub Project 선택</Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={styles.repositoryFilterScroll}
-            contentContainerStyle={styles.repositoryFilterList}
+            style={styles.projectSelectorScroll}
+            contentContainerStyle={styles.projectSelectorList}
           >
-            {[
-              { label: "전체", value: null, count: result.issueCount },
-              ...IMPORTANT_REPOSITORIES.map((repository) => ({
-                label: repository,
-                value: repository as string | null,
-                count: repositoryIssueCounts.get(repository) ?? 0,
-              })),
-            ].map((repository) => {
-              const selected = repository.value === selectedRepository;
+            {projects.map((project) => {
+              const selected = project.number === selectedProject.number;
               return (
                 <Pressable
-                  key={repository.value ?? "all"}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${repository.label} 저장소 필터, 이슈 ${repository.count}개`}
+                  key={project.number}
+                  accessibilityRole="tab"
+                  accessibilityLabel={`${project.title}, GitHub Project #${project.number}, 항목 ${project.itemCount}개`}
                   accessibilityState={{ selected }}
-                  onPress={() => setSelectedRepository(repository.value)}
+                  onPress={() => {
+                    setSelectedProjectNumber(project.number);
+                    setSelectedColumnId(null);
+                    setSearch("");
+                    setLinkError(null);
+                  }}
                   style={({ pressed }) => [
-                    styles.repositoryFilter,
-                    selected ? styles.repositoryFilterActive : null,
+                    styles.projectSelector,
+                    selected ? styles.projectSelectorActive : null,
                     pressed ? styles.pressed : null,
                   ]}
                 >
                   <Text style={[
-                    styles.repositoryFilterText,
-                    selected ? styles.repositoryFilterTextActive : null,
+                    styles.projectSelectorText,
+                    selected ? styles.projectSelectorTextActive : null,
                   ]}>
-                    {repository.label}
+                    {project.title}
                   </Text>
-                  <Text style={styles.repositoryFilterCount}>{repository.count}</Text>
+                  <Text style={styles.projectSelectorCount}>{project.itemCount}</Text>
                 </Pressable>
               );
             })}
@@ -581,9 +623,7 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
           </View>
           <Text accessibilityLiveRegion="polite" style={styles.resultText}>
             {hasSearch
-              ? `검색 결과 ${visibleIssueCount} / ${selectedRepositoryIssueCount}`
-              : hasRepositoryFilter
-                ? `${selectedRepository} · 이슈 ${visibleIssueCount}개`
+              ? `검색 결과 ${visibleIssueCount} / ${result.issueCount}`
               : `${result.columns.length}개 상태 · ${result.issueCount}개 이슈`}
           </Text>
         </View>
@@ -592,6 +632,13 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
           <TintedSurface tone={theme.colors.statusDanger} opacity={0.05} style={styles.notice} styles={styles}>
             <Text style={[styles.noticeTitle, styles.noticeErrorTitle]}>마지막 성공 결과를 표시하고 있습니다</Text>
             <Text style={styles.noticeText}>새로고침 실패: {errorMessage(query.error)}</Text>
+          </TintedSurface>
+        ) : null}
+
+        {projectListQuery.error ? (
+          <TintedSurface tone={theme.colors.statusDanger} opacity={0.05} style={styles.notice} styles={styles}>
+            <Text style={[styles.noticeTitle, styles.noticeErrorTitle]}>Project 목록을 갱신하지 못했습니다</Text>
+            <Text style={styles.noticeText}>마지막 성공 목록을 표시하고 있습니다: {errorMessage(projectListQuery.error)}</Text>
           </TintedSurface>
         ) : null}
 
@@ -616,16 +663,15 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
             <Text style={styles.stateTitle}>표시할 Status 칼럼이 없습니다</Text>
             <Text style={styles.stateText}>GitHub Project의 Status 필드를 확인하세요.</Text>
           </TintedSurface>
-        ) : (hasSearch || hasRepositoryFilter) && visibleIssueCount === 0 ? (
+        ) : result.issueCount === 0 ? (
           <TintedSurface tone={theme.colors.foregroundMuted} opacity={0.04} style={styles.statePanel} styles={styles}>
-            <Text style={styles.stateTitle}>
-              {hasSearch ? "검색 결과가 없습니다" : `${selectedRepository}에 표시할 이슈가 없습니다`}
-            </Text>
-            <Text style={styles.stateText}>
-              {hasSearch
-                ? "검색어를 줄이거나 다른 단어로 찾아보세요."
-                : "GitHub Project에 이 저장소의 이슈를 추가했는지 확인하세요."}
-            </Text>
+            <Text style={styles.stateTitle}>Project에 표시할 이슈가 없습니다</Text>
+            <Text style={styles.stateText}>이 저장소의 이슈를 GitHub Project에 추가하세요.</Text>
+          </TintedSurface>
+        ) : hasSearch && visibleIssueCount === 0 ? (
+          <TintedSurface tone={theme.colors.foregroundMuted} opacity={0.04} style={styles.statePanel} styles={styles}>
+            <Text style={styles.stateTitle}>검색 결과가 없습니다</Text>
+            <Text style={styles.stateText}>검색어를 줄이거나 다른 단어로 찾아보세요.</Text>
           </TintedSurface>
         ) : layout.compact ? (
           <>

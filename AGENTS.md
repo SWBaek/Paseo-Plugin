@@ -54,7 +54,7 @@ npm run typecheck --workspace paseo-plugin
   Role: 선택된 호스트의 Git Workspace와 로컬 브랜치 상태를 읽기 전용으로 집계하는 전역 사이드바 surface를 제공한다.
 - `plugins/github-project-board/`
   Audience: **Personal operations**
-  Role: `SWBaek`의 GitHub Project #1을 GitHub CLI의 기존 인증으로 조회해 읽기 전용 칸반으로 표시하는 전역 사이드바 surface를 제공한다.
+  Role: `SWBaek`의 개인 GitHub Project 목록을 GitHub CLI의 기존 인증으로 조회하고, 선택한 Project를 읽기 전용 칸반으로 표시하는 전역 사이드바 surface를 제공한다.
 
 ## Per-Plugin Change Routing
 

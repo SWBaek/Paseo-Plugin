@@ -1,23 +1,46 @@
 import { describe, expect, it, vi } from "vitest";
-import { GithubProjectBoardScanResultSchema } from "./github-project-board.shared";
 import {
-  GH_PROJECT_FIELD_LIST_ARGS,
-  GH_PROJECT_ITEM_LIST_ARGS,
-  GH_PROJECT_VIEW_ARGS,
+  GithubProjectBoardScanResultSchema,
+  GithubProjectListResultSchema,
+} from "./github-project-board.shared";
+import {
+  GH_PROJECT_LIST_ARGS,
   assertReadOnlyGhArgs,
   createGhRunner,
+  githubProjectFieldListArgs,
+  githubProjectItemListArgs,
+  githubProjectViewArgs,
   githubCliErrorMessage,
+  listGithubProjects,
   scanGithubProject,
   type GhProcessExecutor,
   type GhRunner,
 } from "./github-project-board.server";
 
 const VIEW = {
-  title: "Paseo Plugins",
-  url: "https://github.com/users/SWBaek/projects/1",
-  number: 1,
+  title: "sdoc-editor",
+  url: "https://github.com/users/SWBaek/projects/3",
+  number: 3,
   owner: { login: "SWBaek" },
   items: { totalCount: 1 },
+};
+const PROJECTS = {
+  projects: [
+    {
+      title: "sdoc-editor",
+      url: "https://github.com/users/SWBaek/projects/3",
+      number: 3,
+      owner: { login: "SWBaek", type: "User" },
+      items: { totalCount: 20 },
+    },
+    {
+      title: "Paseo Plugins",
+      url: "https://github.com/users/SWBaek/projects/1",
+      number: 1,
+      owner: { login: "SWBaek", type: "User" },
+      items: { totalCount: 6 },
+    },
+  ],
 };
 const FIELDS = {
   fields: [
@@ -54,6 +77,7 @@ function fixtureRunner(overrides: Partial<Record<string, string>> = {}): GhRunne
   return vi.fn(async (args) => {
     const command = args.slice(0, 2).join(" ");
     const values: Record<string, string> = {
+      "project list": JSON.stringify(PROJECTS),
       "project view": JSON.stringify(VIEW),
       "project field-list": JSON.stringify(FIELDS),
       "project item-list": JSON.stringify(ITEMS),
@@ -71,12 +95,13 @@ describe("read-only GitHub CLI process", () => {
       return { stdout: "{}", stderr: "" };
     };
     const gh = createGhRunner(executor);
+    const itemListArgs = githubProjectItemListArgs(3);
 
-    await gh(GH_PROJECT_ITEM_LIST_ARGS);
+    await gh(itemListArgs);
 
     const [file, args, options] = captured!;
     expect(file).toBe("gh");
-    expect(args).toEqual(GH_PROJECT_ITEM_LIST_ARGS);
+    expect(args).toEqual(itemListArgs);
     expect(options).toMatchObject({
       encoding: "utf8",
       timeout: 30_000,
@@ -89,13 +114,15 @@ describe("read-only GitHub CLI process", () => {
   });
 
   it("blocks commands outside the exact read-only allowlist", () => {
-    expect(() => assertReadOnlyGhArgs(GH_PROJECT_VIEW_ARGS)).not.toThrow();
-    expect(() => assertReadOnlyGhArgs(GH_PROJECT_FIELD_LIST_ARGS)).not.toThrow();
-    expect(() => assertReadOnlyGhArgs(GH_PROJECT_ITEM_LIST_ARGS)).not.toThrow();
+    expect(() => assertReadOnlyGhArgs(GH_PROJECT_LIST_ARGS)).not.toThrow();
+    expect(() => assertReadOnlyGhArgs(githubProjectViewArgs(3))).not.toThrow();
+    expect(() => assertReadOnlyGhArgs(githubProjectFieldListArgs(3))).not.toThrow();
+    expect(() => assertReadOnlyGhArgs(githubProjectItemListArgs(3))).not.toThrow();
     expect(() => assertReadOnlyGhArgs(["project", "item-edit", "--id", "danger"])).toThrow(
       "Blocked non-read-only GitHub CLI command",
     );
-    expect(() => assertReadOnlyGhArgs([...GH_PROJECT_ITEM_LIST_ARGS, "--query", "secret"])).toThrow();
+    expect(() => assertReadOnlyGhArgs([...githubProjectItemListArgs(3), "--query", "secret"])).toThrow();
+    expect(() => assertReadOnlyGhArgs(githubProjectViewArgs(0))).toThrow("양의 정수");
   });
 });
 
@@ -104,7 +131,7 @@ describe("GitHub CLI errors", () => {
     expect(githubCliErrorMessage(Object.assign(new Error("spawn gh ENOENT"), { code: "ENOENT" }))).toContain("설치");
     expect(githubCliErrorMessage(new Error("not logged into any GitHub hosts; run gh auth login"))).toContain("gh auth login");
     expect(githubCliErrorMessage(new Error("missing required scopes [project]"))).toContain("gh auth refresh -s project");
-    expect(githubCliErrorMessage(new Error("Could not resolve to a ProjectV2"))).toContain("Project #1");
+    expect(githubCliErrorMessage(new Error("Could not resolve to a ProjectV2"), 3)).toContain("Project #3");
   });
 
   it("redacts tokens from fallback errors", () => {
@@ -122,15 +149,15 @@ describe("GitHub CLI errors", () => {
 describe("project scan", () => {
   it("runs the three approved queries and returns schema-valid board data", async () => {
     const gh = fixtureRunner();
-    const result = await scanGithubProject({
+    const result = await scanGithubProject(3, {
       gh,
       now: () => new Date("2026-08-28T00:00:00.000Z"),
     });
 
     expect(gh).toHaveBeenCalledTimes(3);
-    expect(gh).toHaveBeenCalledWith(GH_PROJECT_VIEW_ARGS);
-    expect(gh).toHaveBeenCalledWith(GH_PROJECT_FIELD_LIST_ARGS);
-    expect(gh).toHaveBeenCalledWith(GH_PROJECT_ITEM_LIST_ARGS);
+    expect(gh).toHaveBeenCalledWith(githubProjectViewArgs(3));
+    expect(gh).toHaveBeenCalledWith(githubProjectFieldListArgs(3));
+    expect(gh).toHaveBeenCalledWith(githubProjectItemListArgs(3));
     expect(result.scannedAt).toBe("2026-08-28T00:00:00.000Z");
     expect(result.columns.map((column) => column.name)).toEqual(["Inbox", "Done"]);
     expect(result.columns[1].issues[0]).toMatchObject({ number: 6, title: "Board idea" });
@@ -139,7 +166,7 @@ describe("project scan", () => {
 
   it("rejects invalid JSON with the command name", async () => {
     await expect(
-      scanGithubProject({ gh: fixtureRunner({ "project item-list": "not-json" }) }),
+      scanGithubProject(3, { gh: fixtureRunner({ "project item-list": "not-json" }) }),
     ).rejects.toThrow("gh project item-list 명령이 올바른 JSON");
   });
 
@@ -148,6 +175,25 @@ describe("project scan", () => {
       throw new Error("missing required scopes [project]");
     };
 
-    await expect(scanGithubProject({ gh })).rejects.toThrow("gh auth refresh -s project");
+    await expect(scanGithubProject(3, { gh })).rejects.toThrow("gh auth refresh -s project");
+  });
+});
+
+describe("project list", () => {
+  it("returns schema-valid projects ordered by project number", async () => {
+    const gh = fixtureRunner();
+    const result = await listGithubProjects({ gh });
+
+    expect(gh).toHaveBeenCalledOnce();
+    expect(gh).toHaveBeenCalledWith(GH_PROJECT_LIST_ARGS);
+    expect(result.projects.map((project) => project.number)).toEqual([1, 3]);
+    expect(result.projects[1]).toMatchObject({ title: "sdoc-editor", itemCount: 20 });
+    expect(GithubProjectListResultSchema.safeParse(result).success).toBe(true);
+  });
+
+  it("rejects invalid project list JSON", async () => {
+    await expect(
+      listGithubProjects({ gh: fixtureRunner({ "project list": "not-json" }) }),
+    ).rejects.toThrow("gh project list 명령이 올바른 JSON");
   });
 });
