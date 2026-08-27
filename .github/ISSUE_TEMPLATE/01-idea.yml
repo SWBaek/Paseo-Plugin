@@ -4,6 +4,8 @@ title: "[Idea] "
 labels:
   - idea
   - needs-triage
+projects:
+  - SWBaek/1
 body:
   - type: markdown
     attributes:

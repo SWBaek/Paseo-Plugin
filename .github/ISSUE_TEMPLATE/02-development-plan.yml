@@ -4,6 +4,8 @@ title: "[Plan] "
 labels:
   - enhancement
   - needs-triage
+projects:
+  - SWBaek/1
 body:
   - type: markdown
     attributes:
