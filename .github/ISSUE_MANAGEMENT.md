@@ -5,6 +5,7 @@
 ## 등록과 분류
 
 - 새 아이디어는 `아이디어` Issue Form으로 등록하고 `Inbox`에서 검토한다.
+- Issue Form으로 만든 Issue는 `Paseo Plugins` Project에 자동 등록된다. 아직 `Status` 값이 없는 항목도 Backlog 보기에 표시되며 분류할 때 `Inbox`를 지정한다.
 - 구현하기로 결정한 작업은 검증 가능한 완료 조건을 채운 뒤 `Ready`로 옮긴다.
 - 한 Issue는 독립적으로 검증할 수 있는 하나의 결과를 다룬다.
 - 플러그인 영역 라벨은 디렉터리명이 아니라 `paseo-plugin.json`의 런타임 ID를 기준으로 한다.
@@ -34,5 +35,5 @@ Milestone은 진행 상태가 아니라 `v0.1.0`, `v0.2.0`처럼 릴리스 범�
 ## 정기 정리
 
 - `Inbox`의 새 항목을 주기적으로 검토해 Backlog 이동, 구현 승인 또는 `not planned` 종료를 결정한다.
-- 완료된 Issue와 병합된 PR은 `Done`으로 자동 이동한다.
-- 오래된 `Done` 항목은 Project 자동 보관 대상으로 관리한다.
+- 완료된 Issue와 병합된 PR은 `Done`으로 옮긴다.
+- 오래된 `Done` 항목은 필요할 때 Project에서 보관한다.
