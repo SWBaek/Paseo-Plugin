@@ -61,6 +61,7 @@ function createStyles(theme: PluginTheme, compact: boolean) {
     },
     secondaryButton: {
       minHeight: 38,
+      minWidth: compact ? 0 : 146,
       flex: compact ? 1 : 0,
       paddingHorizontal: 14,
       paddingVertical: 9,
@@ -73,6 +74,7 @@ function createStyles(theme: PluginTheme, compact: boolean) {
     secondaryButtonText: { color: theme.colors.foreground, fontSize: 12, fontWeight: "800" },
     primaryButton: {
       minHeight: 38,
+      minWidth: compact ? 0 : 132,
       flex: compact ? 1 : 0,
       paddingHorizontal: 15,
       paddingVertical: 9,
