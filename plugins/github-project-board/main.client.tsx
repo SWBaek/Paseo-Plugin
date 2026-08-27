@@ -122,6 +122,7 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       justifyContent: "space-between",
       gap: 12,
     },
+    nativeToolbar: { gap: 3 },
     searchBox: {
       flex: compact ? 0 : 1,
       maxWidth: compact ? undefined : 520,
@@ -522,25 +523,36 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
 
         <View style={styles.divider} />
 
-        <View style={styles.toolbar}>
-          <View style={styles.searchBox}>
-            <TextInput
-              accessibilityLabel="GitHub Project 이슈 검색"
-              autoCapitalize="none"
-              autoCorrect={false}
-              onChangeText={changeSearch}
-              placeholder="제목, #번호, 저장소, 라벨, 담당자 검색"
-              placeholderTextColor={theme.colors.foregroundMuted}
-              style={styles.searchInput}
-              value={search}
-            />
+        {nativeCompatibilityLayout ? (
+          <View style={styles.nativeToolbar}>
+            <Text style={styles.resultText}>
+              {result.columns.length}개 상태 · {result.issueCount}개 이슈
+            </Text>
+            <Text style={styles.resultText}>
+              모바일 호환 모드에서는 검색 대신 상태와 이슈 페이지를 선택합니다.
+            </Text>
           </View>
-          <Text style={styles.resultText}>
-            {search.trim()
-              ? `검색 결과 ${visibleIssueCount} / ${result.issueCount}`
-              : `${result.columns.length}개 상태 · ${result.issueCount}개 이슈`}
-          </Text>
-        </View>
+        ) : (
+          <View style={styles.toolbar}>
+            <View style={styles.searchBox}>
+              <TextInput
+                accessibilityLabel="GitHub Project 이슈 검색"
+                autoCapitalize="none"
+                autoCorrect={false}
+                onChangeText={changeSearch}
+                placeholder="제목, #번호, 저장소, 라벨, 담당자 검색"
+                placeholderTextColor={theme.colors.foregroundMuted}
+                style={styles.searchInput}
+                value={search}
+              />
+            </View>
+            <Text style={styles.resultText}>
+              {search.trim()
+                ? `검색 결과 ${visibleIssueCount} / ${result.issueCount}`
+                : `${result.columns.length}개 상태 · ${result.issueCount}개 이슈`}
+            </Text>
+          </View>
+        )}
 
         {query.error ? (
           <TintedSurface tone={theme.colors.statusDanger} opacity={0.045} style={styles.callout} styles={styles}>
