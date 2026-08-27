@@ -7,7 +7,7 @@
 작업을 시작할 때:
 
 - 먼저 변경 대상 플러그인을 `plugins/`에서 고른다.
-- 해당 디렉터리의 `paseo-plugin.json`에서 런타임 ID를 확인한다.
+- 해당 디렉터리의 `paseo-plugin.json`에서 기본 설치 ID를 확인한다.
 - 기여 등록은 같은 디렉터리의 `index.ts`, 클라이언트 UI는 `*.client.tsx`에서 시작한다.
 - 한 플러그인만 바꿨으면 해당 workspace를, 구조나 공통 설치 상태를 바꿨으면 루트 workspace 전체를 검증한다.
 
@@ -33,7 +33,7 @@ npm run typecheck --workspace paseo-plugin
 1. `plugins/<plugin-id>` 아래의 새 빈 디렉터리를 대상으로 `paseo plugin init <absolute-directory> --id <plugin-id>`를 실행한다.
 2. 생성된 `package.json`의 `name`과 `paseo-plugin.json`의 `id`가 이 저장소 안에서 고유한지 확인한다.
 3. 루트에서 `npm install`을 실행해 workspace 설치 상태를 갱신한다.
-4. 아래 Workspace Map에 실제 경로와 역할을 추가한다.
+4. 아래 Workspace Map에 실제 경로와 역할을 추가하고 `.github/ISSUE_TEMPLATE/*.yml`의 대상 선택지를 갱신한다.
 5. 새 플러그인의 workspace 타입 검사와 루트 전체 타입 검사를 실행한다.
 
 기존 플러그인을 복사해 새 플러그인을 만들지 않는다. 현재 Paseo CLI가 생성하는 스캐폴드를 사용해야 플러그인 계약과 `paseo-plugin.d.ts`가 설치된 CLI 버전에 맞는다.
@@ -60,16 +60,17 @@ npm run typecheck --workspace paseo-plugin
 
 ## Synchronization Rules
 
-- 기여 ID, surface ID 또는 등록 방식이 바뀌면 같은 플러그인의 `index.ts`와 해당 `*.client.tsx`를 함께 갱신한다.
-- RPC 입력·출력이 바뀌면 같은 플러그인의 `*.shared.ts` 계약, `*.server.ts` 처리기, `*.client.tsx` 호출부를 함께 갱신한다.
-- 플러그인 디렉터리를 추가·삭제·이름 변경하면 이 파일의 Workspace Map과 루트 workspace 검증을 같은 변경에서 맞춘다.
+- 기여 ID, surface ID, sidebar의 surface 연결 또는 등록 방식은 같은 플러그인의 `index.ts`에서 함께 갱신한다. 연결된 컴포넌트의 export나 props가 영향을 받을 때만 해당 `*.client.tsx`를 함께 바꾼다.
+- RPC 입력·출력이 바뀌면 실제 영향 범위에 따라 같은 플러그인의 `*.shared.ts` 계약, `*.server.ts` 구현, `index.ts`의 `plugin.handle` 등록과 `*.client.tsx` 호출부를 함께 갱신한다.
+- 플러그인 디렉터리를 추가·삭제·이름 변경하면 이 파일의 Workspace Map, `.github/ISSUE_TEMPLATE/*.yml`의 대상 선택지와 루트 workspace 검증을 같은 변경에서 맞춘다.
 - Paseo 플러그인 계약이 바뀌면 현재 CLI가 생성하는 새 스캐폴드와 공식 참조 문서를 대조하고, 영향받는 각 플러그인의 생성 타입 계약을 확인한다.
 
 ## Validation and Runtime Safety
 
 - 한 플러그인의 소스 변경은 먼저 `npm run typecheck --workspace <package-name>`으로 검사한다.
+- `branch-garden`의 logic, server, shared 또는 view 동작을 바꾸면 `npm run typecheck --workspace branch-garden`과 `npm test --workspace branch-garden`을 모두 실행한다. Git 명령 변경은 read-only allowlist와 실제 Git 상태 무변경 테스트를 반드시 통과해야 한다.
 - workspace 구조, 설치 상태 또는 여러 플러그인에 걸친 변경은 루트에서 `npm run typecheck`로 검사한다.
-- 설치 또는 재로딩까지 요청된 경우에만 대상 데몬, 플러그인 디렉터리, manifest의 런타임 ID를 확인하고 `paseo plugin install` 또는 `paseo plugin reload`를 실행한다. 이어서 `paseo plugin ls`에서 상태와 오류를 확인한다.
+- 설치 또는 재로딩까지 요청된 경우에만 대상 데몬과 플러그인 디렉터리를 확인하고 `paseo plugin install` 또는 `paseo plugin reload`를 실행한다. 설치 시 `paseo-plugin.json`의 ID가 기본값이며 `--id`를 지정하면 그 값이 실제 런타임 ID가 된다. 재로딩과 로그 확인 전에는 대상 데몬에서 `paseo plugin ls`를 실행해 실제 런타임 ID를 확인하고, 원격 데몬에는 같은 명령에 `--host <host>`를 사용한다. 설치 또는 재로딩 후에는 `paseo plugin ls`에서 상태와 오류를 확인한다.
 - 플러그인은 신뢰된 비격리 코드다. 데몬의 전역 플러그인 스위치가 꺼져 있거나 없으면 사용자의 명시적 허가 없이 켜지 않는다.
 - 소스 변경을 반영하려고 데몬을 재시작하지 않는다. `paseo plugin reload <runtime-id>`를 사용한다.
 - 백엔드 오류는 `paseo plugin logs <runtime-id>`로 확인하고, 로그에 자격 증명이나 토큰을 남기지 않는다.
