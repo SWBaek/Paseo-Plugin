@@ -13,6 +13,12 @@
 
 플러그인 API는 실험 단계이므로 계약을 바꾸거나 새 기여 유형을 추가하기 전에 현재 [Plugin quickstart](https://paseo.sh/docs/plugins)와 [Plugin reference](https://paseo.sh/docs/plugins/reference)를 확인한다.
 
+## Design Rules
+
+- 플러그인의 클라이언트 UI를 만들거나 변경할 때는 [Paseo Plugin Design Rules](docs/DESIGN.md)를 따른다.
+- 디자인 규칙이 공식 Plugin 문서나 대상 플러그인의 생성된 `paseo-plugin.d.ts`와 충돌하면 공식 문서와 생성 타입을 우선하고, 같은 변경에서 `docs/DESIGN.md`를 갱신한다.
+- UI 검토에서는 wide/compact layout, 밝은/어두운 theme, loading·empty·error·disabled 상태와 접근성을 함께 확인한다.
+
 ## Common Commands
 
 루트에서 의존성을 설치하고 모든 플러그인을 검사한다.
@@ -46,6 +52,9 @@ npm run typecheck --workspace paseo-plugin
 - `plugins/branch-garden/`
   Audience: **Personal operations**
   Role: 선택된 호스트의 Git Workspace와 로컬 브랜치 상태를 읽기 전용으로 집계하는 전역 사이드바 surface를 제공한다.
+- `plugins/github-project-board/`
+  Audience: **Personal operations**
+  Role: `SWBaek`의 GitHub Project #1을 GitHub CLI의 기존 인증으로 조회해 읽기 전용 칸반으로 표시하는 전역 사이드바 surface를 제공한다.
 
 ## Per-Plugin Change Routing
 
@@ -69,6 +78,7 @@ npm run typecheck --workspace paseo-plugin
 
 - 한 플러그인의 소스 변경은 먼저 `npm run typecheck --workspace <package-name>`으로 검사한다.
 - `branch-garden`의 logic, server, shared 또는 view 동작을 바꾸면 `npm run typecheck --workspace branch-garden`과 `npm test --workspace branch-garden`을 모두 실행한다. Git 명령 변경은 read-only allowlist와 실제 Git 상태 무변경 테스트를 반드시 통과해야 한다.
+- `github-project-board`의 logic, server, shared 또는 view 동작을 바꾸면 `npm run typecheck --workspace github-project-board`와 `npm test --workspace github-project-board`를 모두 실행한다. GitHub CLI 명령 변경은 read-only allowlist 테스트를 반드시 통과해야 한다.
 - workspace 구조, 설치 상태 또는 여러 플러그인에 걸친 변경은 루트에서 `npm run typecheck`로 검사한다.
 - 설치 또는 재로딩까지 요청된 경우에만 대상 데몬과 플러그인 디렉터리를 확인하고 `paseo plugin install` 또는 `paseo plugin reload`를 실행한다. 설치 시 `paseo-plugin.json`의 ID가 기본값이며 `--id`를 지정하면 그 값이 실제 런타임 ID가 된다. 재로딩과 로그 확인 전에는 대상 데몬에서 `paseo plugin ls`를 실행해 실제 런타임 ID를 확인하고, 원격 데몬에는 같은 명령에 `--host <host>`를 사용한다. 설치 또는 재로딩 후에는 `paseo plugin ls`에서 상태와 오류를 확인한다.
 - 플러그인은 신뢰된 비격리 코드다. 데몬의 전역 플러그인 스위치가 꺼져 있거나 없으면 사용자의 명시적 허가 없이 켜지 않는다.
