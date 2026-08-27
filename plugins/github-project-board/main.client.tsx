@@ -17,11 +17,17 @@ import {
   type GithubIssueCard,
   type GithubProjectColumn,
 } from "./github-project-board.shared";
-import { countColumnIssues, filterProjectColumns } from "./github-project-board.view";
+import {
+  countColumnIssues,
+  filterProjectColumns,
+  isNativePluginPlatform,
+  selectIssuePage,
+} from "./github-project-board.view";
 
 function createStyles(theme: PluginTheme, compact: boolean) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: theme.colors.surface0 },
+    nativeScreen: { overflow: "hidden" },
     content: {
       width: "100%",
       paddingHorizontal: compact ? 12 : 28,
@@ -29,9 +35,11 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       paddingBottom: compact ? 32 : 52,
     },
     shell: { width: "100%", maxWidth: 1640, alignSelf: "center", gap: compact ? 14 : 18 },
+    nativeShell: { flex: 1 },
     tintedSurface: { position: "relative", overflow: "hidden" },
     tintLayer: { ...StyleSheet.absoluteFillObject },
     header: { gap: 14, paddingBottom: compact ? 4 : 8 },
+    nativeHeader: { gap: 8, paddingBottom: 0 },
     headerTop: {
       flexDirection: compact ? "column" : "row",
       alignItems: compact ? "stretch" : "flex-start",
@@ -202,6 +210,7 @@ function createStyles(theme: PluginTheme, compact: boolean) {
     },
     tabs: { width: "100%" },
     tabList: { flexDirection: "row", gap: 7, paddingBottom: 2 },
+    nativeTabList: { width: "100%", flexDirection: "row", flexWrap: "wrap", gap: 7 },
     tab: {
       minHeight: 34,
       flexDirection: "row",
@@ -216,6 +225,33 @@ function createStyles(theme: PluginTheme, compact: boolean) {
     tabActive: { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent },
     tabText: { color: theme.colors.foregroundMuted, fontSize: 11, fontWeight: "800" },
     tabTextActive: { color: theme.colors.accentForeground },
+    nativeBoard: { width: "100%", gap: 9 },
+    pager: {
+      width: "100%",
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 10,
+    },
+    pagerButton: {
+      minHeight: 34,
+      flex: 1,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 9,
+      borderWidth: 1,
+      borderColor: theme.colors.foregroundMuted,
+    },
+    pagerButtonText: { color: theme.colors.foreground, fontSize: 11, fontWeight: "800" },
+    pagerPosition: {
+      minWidth: 56,
+      color: theme.colors.foregroundMuted,
+      fontSize: 11,
+      fontWeight: "800",
+      textAlign: "center",
+    },
     screenState: {
       flex: 1,
       minHeight: 260,
@@ -300,9 +336,10 @@ function IssueCard({ issue, onOpen, styles, theme }: {
   );
 }
 
-function BoardColumn({ column, compact, onOpen, styles, theme }: {
+function BoardColumn({ column, compact, issueCount, onOpen, styles, theme }: {
   column: GithubProjectColumn;
   compact: boolean;
+  issueCount?: number;
   onOpen: (url: string) => void;
   styles: Styles;
   theme: PluginTheme;
@@ -319,7 +356,7 @@ function BoardColumn({ column, compact, onOpen, styles, theme }: {
           <View style={styles.columnMarker} />
           <Text style={styles.columnTitle} numberOfLines={1}>{column.name}</Text>
         </View>
-        <Text style={styles.columnCount}>{column.issues.length}</Text>
+        <Text style={styles.columnCount}>{issueCount ?? column.issues.length}</Text>
       </View>
       {column.issues.length > 0 ? (
         <View style={styles.cardList}>
@@ -368,10 +405,13 @@ function FullScreenState({ message, onRetry, retrying, styles, title }: {
 
 export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
   const scan = useRpc(githubProjectBoardScan);
+  const nativeCompatibilityLayout = isNativePluginPlatform(layout.platform);
   const [search, setSearch] = useState("");
   const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null);
+  const [nativeIssueIndex, setNativeIssueIndex] = useState(0);
   const [linkError, setLinkError] = useState<string | null>(null);
-  const styles = useMemo(() => createStyles(theme, layout.compact), [theme, layout.compact]);
+  const visualCompact = layout.compact || nativeCompatibilityLayout;
+  const styles = useMemo(() => createStyles(theme, visualCompact), [theme, visualCompact]);
   const query = useQuery({
     queryKey: ["github-project-board", "scan", host.id],
     queryFn: () => scan({}),
@@ -398,6 +438,17 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
   const visibleIssueCount = countColumnIssues(filteredColumns);
   const selectedColumn =
     filteredColumns.find((column) => column.id === selectedColumnId) ?? filteredColumns[0] ?? null;
+  const nativeIssuePage = selectIssuePage(selectedColumn?.issues ?? [], nativeIssueIndex);
+
+  const changeSearch = useCallback((value: string) => {
+    setSearch(value);
+    setNativeIssueIndex(0);
+  }, []);
+
+  const selectColumn = useCallback((columnId: string) => {
+    setSelectedColumnId(columnId);
+    setNativeIssueIndex(0);
+  }, []);
 
   if (query.isPending && !query.data) {
     return (
@@ -422,15 +473,16 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
   }
 
   const result = query.data;
-  return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <View style={styles.shell}>
-        <View style={styles.header}>
+  const content = (
+      <View style={[styles.shell, nativeCompatibilityLayout ? styles.nativeShell : null]}>
+        <View style={[styles.header, nativeCompatibilityLayout ? styles.nativeHeader : null]}>
           <View style={styles.headerTop}>
             <View style={styles.headerCopy}>
               <Text style={styles.eyebrow}>GITHUB PROJECT #{result.project.number}</Text>
               <Text style={styles.title}>{result.project.title}</Text>
-              <Text style={styles.subtitle}>이슈 흐름을 Paseo 안에서 읽기 전용 칸반으로 확인합니다.</Text>
+              {nativeCompatibilityLayout ? null : (
+                <Text style={styles.subtitle}>이슈 흐름을 Paseo 안에서 읽기 전용 칸반으로 확인합니다.</Text>
+              )}
             </View>
             <View style={styles.headerActions}>
               <Pressable
@@ -476,7 +528,7 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
               accessibilityLabel="GitHub Project 이슈 검색"
               autoCapitalize="none"
               autoCorrect={false}
-              onChangeText={setSearch}
+              onChangeText={changeSearch}
               placeholder="제목, #번호, 저장소, 라벨, 담당자 검색"
               placeholderTextColor={theme.colors.foregroundMuted}
               style={styles.searchInput}
@@ -521,6 +573,75 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
             <Text style={styles.stateTitle}>표시할 Status 칼럼이 없습니다.</Text>
             <Text style={styles.stateText}>GitHub Project의 Status 필드를 확인해 주세요.</Text>
           </TintedSurface>
+        ) : nativeCompatibilityLayout ? (
+          <View style={styles.nativeBoard}>
+            <View style={styles.nativeTabList}>
+              {filteredColumns.map((column) => {
+                const active = selectedColumn?.id === column.id;
+                return (
+                  <Pressable
+                    key={column.id}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: active }}
+                    onPress={() => selectColumn(column.id)}
+                    style={[styles.tab, active ? styles.tabActive : null]}
+                  >
+                    <Text style={[styles.tabText, active ? styles.tabTextActive : null]}>
+                      {column.name} {column.issues.length}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {selectedColumn ? (
+              <>
+                <BoardColumn
+                  column={{
+                    ...selectedColumn,
+                    issues: nativeIssuePage.issue ? [nativeIssuePage.issue] : [],
+                  }}
+                  compact
+                  issueCount={nativeIssuePage.total}
+                  onOpen={(url) => void openUrl(url)}
+                  styles={styles}
+                  theme={theme}
+                />
+                {nativeIssuePage.total > 1 ? (
+                  <View style={styles.pager}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="이전 GitHub 이슈"
+                      disabled={nativeIssuePage.index === 0}
+                      onPress={() => setNativeIssueIndex(nativeIssuePage.index - 1)}
+                      style={({ pressed }) => [
+                        styles.pagerButton,
+                        pressed ? styles.pressed : null,
+                        nativeIssuePage.index === 0 ? styles.disabled : null,
+                      ]}
+                    >
+                      <Text style={styles.pagerButtonText}>← 이전</Text>
+                    </Pressable>
+                    <Text style={styles.pagerPosition}>
+                      {nativeIssuePage.index + 1} / {nativeIssuePage.total}
+                    </Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="다음 GitHub 이슈"
+                      disabled={nativeIssuePage.index >= nativeIssuePage.total - 1}
+                      onPress={() => setNativeIssueIndex(nativeIssuePage.index + 1)}
+                      style={({ pressed }) => [
+                        styles.pagerButton,
+                        pressed ? styles.pressed : null,
+                        nativeIssuePage.index >= nativeIssuePage.total - 1 ? styles.disabled : null,
+                      ]}
+                    >
+                      <Text style={styles.pagerButtonText}>다음 →</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
+              </>
+            ) : null}
+          </View>
         ) : layout.compact ? (
           <>
             <ScrollView
@@ -536,7 +657,7 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
                     key={column.id}
                     accessibilityRole="tab"
                     accessibilityState={{ selected: active }}
-                    onPress={() => setSelectedColumnId(column.id)}
+                    onPress={() => selectColumn(column.id)}
                     style={[styles.tab, active ? styles.tabActive : null]}
                   >
                     <Text style={[styles.tabText, active ? styles.tabTextActive : null]}>
@@ -576,10 +697,23 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
           </ScrollView>
         )}
 
-        <Text style={styles.footnote}>
-          GitHub CLI의 기존 인증을 사용합니다 · 제외된 비이슈 항목 {result.excludedItemCount}개 · GitHub 데이터는 변경하지 않습니다.
-        </Text>
+        {nativeCompatibilityLayout ? null : (
+          <Text style={styles.footnote}>
+            GitHub CLI의 기존 인증을 사용합니다 · 제외된 비이슈 항목 {result.excludedItemCount}개 · GitHub 데이터는 변경하지 않습니다.
+          </Text>
+        )}
       </View>
+  );
+
+  // Paseo mobile versions affected by getpaseo/paseo#3930 route plugin
+  // scrollables through BottomSheet internals without providing its context.
+  if (nativeCompatibilityLayout) {
+    return <View style={[styles.screen, styles.content, styles.nativeScreen]}>{content}</View>;
+  }
+
+  return (
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      {content}
     </ScrollView>
   );
 }
