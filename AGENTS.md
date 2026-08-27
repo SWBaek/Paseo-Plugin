@@ -13,6 +13,12 @@
 
 플러그인 API는 실험 단계이므로 계약을 바꾸거나 새 기여 유형을 추가하기 전에 현재 [Plugin quickstart](https://paseo.sh/docs/plugins)와 [Plugin reference](https://paseo.sh/docs/plugins/reference)를 확인한다.
 
+## Design Rules
+
+- 플러그인의 클라이언트 UI를 만들거나 변경할 때는 [Paseo Plugin Design Rules](docs/DESIGN.md)를 따른다.
+- 디자인 규칙이 공식 Plugin 문서나 대상 플러그인의 생성된 `paseo-plugin.d.ts`와 충돌하면 공식 문서와 생성 타입을 우선하고, 같은 변경에서 `docs/DESIGN.md`를 갱신한다.
+- UI 검토에서는 wide/compact layout, 밝은/어두운 theme, loading·empty·error·disabled 상태와 접근성을 함께 확인한다.
+
 ## Common Commands
 
 루트에서 의존성을 설치하고 모든 플러그인을 검사한다.
