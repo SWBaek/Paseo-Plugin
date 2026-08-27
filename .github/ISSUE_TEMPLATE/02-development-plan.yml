@@ -1,0 +1,89 @@
+name: 개발 계획
+description: 구현할 작업의 범위, 완료 조건과 실행 계획을 정의합니다.
+title: "[Plan] "
+labels:
+  - enhancement
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        구현을 시작하기 전에 목표와 완료 조건을 명확히 합니다. 큰 계획은 부모 Issue로 만들고 독립적으로 검증할 수 있는 작업을 하위 Issue로 분리합니다.
+
+  - type: dropdown
+    id: target
+    attributes:
+      label: 대상
+      description: 작업이 영향을 주는 범위를 선택해 주세요.
+      options:
+        - workspace 전체
+        - paseo-plugin
+        - 새 플러그인
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 배경
+      description: 이 작업이 필요한 이유와 관련된 기존 Issue를 적어 주세요.
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: 목표
+      description: 작업을 통해 달성하려는 결과를 간결하게 설명해 주세요.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: 작업 범위
+      description: 포함할 변경 사항을 적어 주세요.
+      placeholder: |
+        - 변경 사항 1
+        - 변경 사항 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: 제외 범위
+      description: 이번 작업에서 의도적으로 다루지 않을 내용을 적어 주세요.
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: 완료 조건
+      description: 작업 완료 여부를 판단할 수 있는 검증 가능한 조건을 적어 주세요.
+      placeholder: |
+        - [ ] 조건 1
+        - [ ] 조건 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation
+    attributes:
+      label: 구현 계획
+      description: 예상 작업 순서와 필요한 하위 Issue를 적어 주세요.
+      placeholder: |
+        1. 설계 및 계약 확인
+        2. 구현
+        3. 타입 검사와 동작 검증
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: 의존성과 위험 요소
+      description: 선행 작업, 차단 요소, 호환성 문제 또는 주의할 점을 적어 주세요.
+    validations:
+      required: false

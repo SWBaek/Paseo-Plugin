@@ -1,0 +1,79 @@
+name: 버그 보고
+description: 재현 가능한 오동작이나 회귀를 보고합니다.
+title: "[Bug] "
+labels:
+  - bug
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        자격 증명이나 토큰처럼 민감한 정보는 로그와 첨부 파일에서 제거해 주세요.
+
+  - type: dropdown
+    id: target
+    attributes:
+      label: 대상
+      description: 문제가 발생한 범위를 선택해 주세요.
+      options:
+        - workspace 전체
+        - paseo-plugin
+        - 새 플러그인
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 버전 또는 커밋
+      description: 문제가 발생한 플러그인 버전이나 커밋 SHA를 적어 주세요.
+      placeholder: "예: v0.1.0 또는 abc1234"
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 실행 환경
+      description: OS, Paseo 버전과 문제에 관련된 환경 정보를 적어 주세요.
+      placeholder: |
+        - OS:
+        - Paseo:
+        - 기타:
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 재현 방법
+      description: 문제를 반복해서 확인할 수 있는 최소 단계를 적어 주세요.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대한 동작
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 실제 동작
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 로그와 추가 자료
+      description: 민감한 정보를 제거한 로그, 스크린샷 또는 관련 링크를 첨부해 주세요.
+      render: shell
+    validations:
+      required: false
