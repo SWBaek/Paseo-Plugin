@@ -2,6 +2,8 @@
 
 이 저장소는 여러 개의 독립적인 로컬 Paseo 플러그인을 개발하는 npm workspace다. 각 `plugins/*` 디렉터리는 자체 manifest와 진입점을 가진 별도의 설치 단위다.
 
+아이디어, 개발 계획과 버그의 이슈 관리는 GitHub Issues를 사용한다. 새 이슈는 `.github/ISSUE_TEMPLATE/`의 양식을 사용하고, 분류·Project 상태·PR 연결 규칙은 `.github/ISSUE_MANAGEMENT.md`를 따른다.
+
 작업을 시작할 때:
 
 - 먼저 변경 대상 플러그인을 `plugins/`에서 고른다.
