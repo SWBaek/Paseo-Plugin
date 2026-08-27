@@ -17,7 +17,11 @@ import {
   type GithubIssueCard,
   type GithubProjectColumn,
 } from "./github-project-board.shared";
-import { countColumnIssues, filterProjectColumns } from "./github-project-board.view";
+import {
+  countColumnIssues,
+  filterProjectColumns,
+  IMPORTANT_REPOSITORIES,
+} from "./github-project-board.view";
 
 function createStyles(theme: PluginTheme, compact: boolean) {
   return StyleSheet.create({
@@ -101,6 +105,40 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       height: 3,
       borderRadius: 2,
       backgroundColor: theme.colors.foregroundMuted,
+    },
+    repositoryFilterSection: { gap: 8 },
+    repositoryFilterLabel: {
+      color: theme.colors.foregroundMuted,
+      fontSize: 10,
+      lineHeight: 15,
+      fontWeight: "500",
+    },
+    repositoryFilterScroll: { width: "100%" },
+    repositoryFilterList: { flexDirection: "row", gap: 8, paddingRight: 4 },
+    repositoryFilter: {
+      minHeight: 44,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.foregroundMuted,
+    },
+    repositoryFilterActive: { borderColor: theme.colors.accent },
+    repositoryFilterText: {
+      color: theme.colors.foregroundMuted,
+      fontSize: 12,
+      lineHeight: 18,
+      fontWeight: "500",
+    },
+    repositoryFilterTextActive: { color: theme.colors.foreground },
+    repositoryFilterCount: {
+      color: theme.colors.foregroundMuted,
+      fontSize: 10,
+      lineHeight: 15,
+      fontWeight: "400",
     },
     toolbar: {
       flexDirection: compact ? "column" : "row",
@@ -370,6 +408,7 @@ function FullScreenState({ message, onRetry, retrying, styles, theme, title }: {
 export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
   const scan = useRpc(githubProjectBoardScan);
   const [search, setSearch] = useState("");
+  const [selectedRepository, setSelectedRepository] = useState<string | null>(null);
   const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
   const styles = useMemo(() => createStyles(theme, layout.compact), [theme, layout.compact]);
@@ -393,8 +432,17 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
   }, []);
 
   const filteredColumns = useMemo(
-    () => filterProjectColumns(query.data?.columns ?? [], search),
-    [query.data?.columns, search],
+    () => filterProjectColumns(query.data?.columns ?? [], search, selectedRepository),
+    [query.data?.columns, search, selectedRepository],
+  );
+  const repositoryIssueCounts = useMemo(
+    () => new Map<string, number>(
+      IMPORTANT_REPOSITORIES.map((repository) => [
+        repository,
+        countColumnIssues(filterProjectColumns(query.data?.columns ?? [], "", repository)),
+      ] as const),
+    ),
+    [query.data?.columns],
   );
   const visibleIssueCount = countColumnIssues(filteredColumns);
   const selectedColumn =
@@ -426,6 +474,10 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
 
   const result = query.data;
   const hasSearch = search.trim().length > 0;
+  const hasRepositoryFilter = selectedRepository !== null;
+  const selectedRepositoryIssueCount = selectedRepository
+    ? repositoryIssueCounts.get(selectedRepository) ?? 0
+    : result.issueCount;
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -471,6 +523,49 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
           </View>
         </View>
 
+        <View style={styles.repositoryFilterSection}>
+          <Text style={styles.repositoryFilterLabel}>중요 저장소</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.repositoryFilterScroll}
+            contentContainerStyle={styles.repositoryFilterList}
+          >
+            {[
+              { label: "전체", value: null, count: result.issueCount },
+              ...IMPORTANT_REPOSITORIES.map((repository) => ({
+                label: repository,
+                value: repository as string | null,
+                count: repositoryIssueCounts.get(repository) ?? 0,
+              })),
+            ].map((repository) => {
+              const selected = repository.value === selectedRepository;
+              return (
+                <Pressable
+                  key={repository.value ?? "all"}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${repository.label} 저장소 필터, 이슈 ${repository.count}개`}
+                  accessibilityState={{ selected }}
+                  onPress={() => setSelectedRepository(repository.value)}
+                  style={({ pressed }) => [
+                    styles.repositoryFilter,
+                    selected ? styles.repositoryFilterActive : null,
+                    pressed ? styles.pressed : null,
+                  ]}
+                >
+                  <Text style={[
+                    styles.repositoryFilterText,
+                    selected ? styles.repositoryFilterTextActive : null,
+                  ]}>
+                    {repository.label}
+                  </Text>
+                  <Text style={styles.repositoryFilterCount}>{repository.count}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
         <View style={styles.toolbar}>
           <View style={styles.searchBox}>
             <TextInput
@@ -486,7 +581,9 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
           </View>
           <Text accessibilityLiveRegion="polite" style={styles.resultText}>
             {hasSearch
-              ? `검색 결과 ${visibleIssueCount} / ${result.issueCount}`
+              ? `검색 결과 ${visibleIssueCount} / ${selectedRepositoryIssueCount}`
+              : hasRepositoryFilter
+                ? `${selectedRepository} · 이슈 ${visibleIssueCount}개`
               : `${result.columns.length}개 상태 · ${result.issueCount}개 이슈`}
           </Text>
         </View>
@@ -519,10 +616,16 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
             <Text style={styles.stateTitle}>표시할 Status 칼럼이 없습니다</Text>
             <Text style={styles.stateText}>GitHub Project의 Status 필드를 확인하세요.</Text>
           </TintedSurface>
-        ) : hasSearch && visibleIssueCount === 0 ? (
+        ) : (hasSearch || hasRepositoryFilter) && visibleIssueCount === 0 ? (
           <TintedSurface tone={theme.colors.foregroundMuted} opacity={0.04} style={styles.statePanel} styles={styles}>
-            <Text style={styles.stateTitle}>검색 결과가 없습니다</Text>
-            <Text style={styles.stateText}>검색어를 줄이거나 다른 단어로 찾아보세요.</Text>
+            <Text style={styles.stateTitle}>
+              {hasSearch ? "검색 결과가 없습니다" : `${selectedRepository}에 표시할 이슈가 없습니다`}
+            </Text>
+            <Text style={styles.stateText}>
+              {hasSearch
+                ? "검색어를 줄이거나 다른 단어로 찾아보세요."
+                : "GitHub Project에 이 저장소의 이슈를 추가했는지 확인하세요."}
+            </Text>
           </TintedSurface>
         ) : layout.compact ? (
           <>
