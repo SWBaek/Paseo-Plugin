@@ -20,6 +20,7 @@ body:
       options:
         - workspace 전체
         - paseo-plugin
+        - branch-garden
         - 새 플러그인
     validations:
       required: true
