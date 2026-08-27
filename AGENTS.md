@@ -43,6 +43,9 @@ npm run typecheck --workspace paseo-plugin
 - `plugins/paseo-plugin/`
   Audience: **Public integration**
   Role: 현재 기본 플러그인 스캐폴드. `index.ts`가 `main.client.tsx`의 전역 surface를 등록한다.
+- `plugins/branch-garden/`
+  Audience: **Personal operations**
+  Role: 선택된 호스트의 Git Workspace와 로컬 브랜치 상태를 읽기 전용으로 집계하는 전역 사이드바 surface를 제공한다.
 
 ## Per-Plugin Change Routing
 
