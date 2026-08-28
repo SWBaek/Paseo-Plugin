@@ -6,6 +6,7 @@
 
 작업을 시작할 때:
 
+- 실제 구현을 시작할 때 해당 이슈의 GitHub Project Status를 `In Progress`로 변경한다.
 - 먼저 변경 대상 플러그인을 `plugins/`에서 고른다.
 - 해당 디렉터리의 `paseo-plugin.json`에서 기본 설치 ID를 확인한다.
 - 기여 등록은 같은 디렉터리의 `index.ts`, 클라이언트 UI는 `*.client.tsx`에서 시작한다.
