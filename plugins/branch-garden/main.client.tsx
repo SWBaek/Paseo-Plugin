@@ -604,7 +604,7 @@ function RepositoryNode({
                 {status.value}
               </Text>
               <Text style={styles.compactFacts} numberOfLines={1}>
-                브랜치 {repository.branchCount} · Workspace {repository.workspaces.length}
+                브랜치 {repository.branchCount} · 활성 Workspace {repository.workspaces.length}
               </Text>
             </>
           ) : null}
@@ -634,7 +634,7 @@ function RepositoryNode({
           <View style={styles.detailMeta}>
             <Text style={styles.detailMetaText}>브랜치 {repository.branchCount}</Text>
             <View style={styles.dotSeparator} />
-            <Text style={styles.detailMetaText}>Workspace {repository.workspaces.length}</Text>
+            <Text style={styles.detailMetaText}>활성 Workspace {repository.workspaces.length}</Text>
             {compact ? (
               <>
                 <View style={styles.dotSeparator} />
@@ -648,14 +648,18 @@ function RepositoryNode({
           {repository.workspaces.length > 0 ? (
             <View style={styles.group}>
               <View style={styles.groupHeader}>
-                <Text style={styles.groupLabel}>Workspace</Text>
+                <Text style={styles.groupLabel}>활성 Workspace</Text>
                 <Text style={styles.groupCount}>{repository.workspaces.length}</Text>
               </View>
               {repository.workspaces.map((workspace) => (
                 <WorkspaceRow key={workspace.id} compact={compact} styles={styles} workspace={workspace} />
               ))}
             </View>
-          ) : null}
+          ) : (
+            <Text style={styles.detailMetaText}>
+              활성 Workspace 없이 등록 Project root에서 조사했습니다.
+            </Text>
+          )}
 
           {focus !== "review" ? (
             <BranchGroup
@@ -775,10 +779,10 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
   if (query.isPending && !query.data) {
     return (
       <FullScreenState
-        message="선택한 Host의 Workspace와 로컬 Git 정보를 읽고 있습니다."
+        message="선택한 Host의 등록 Project, 활성 Workspace와 로컬 Git 정보를 읽고 있습니다."
         styles={styles}
         theme={theme}
-        title="Workspace와 브랜치를 불러오는 중"
+        title="Project와 브랜치를 불러오는 중"
       />
     );
   }
@@ -811,16 +815,18 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
         <View style={styles.overview}>
           <View style={styles.overviewCopy}>
             <Text style={styles.description}>
-              선택한 Host의 Workspace, 저장소, 로컬 브랜치 상태를 읽기 전용으로 보여줍니다.
+              선택한 Host의 등록 Project, 활성 Workspace와 로컬 브랜치 상태를 읽기 전용으로 보여줍니다.
             </Text>
             <View style={styles.metadata}>
               <Text style={styles.metaText}>읽기 전용</Text>
               <View style={styles.dotSeparator} />
               <Text style={styles.metaText}>마지막 조사 {formatScanTime(result.scannedAt)}</Text>
-              {result.skippedNonGitCount > 0 ? (
+              {result.skippedNonGitProjectCount > 0 ? (
                 <>
                   <View style={styles.dotSeparator} />
-                  <Text style={styles.metaText}>non-Git Workspace {result.skippedNonGitCount}개 제외</Text>
+                  <Text style={styles.metaText}>
+                    non-Git Project {result.skippedNonGitProjectCount}개 제외
+                  </Text>
                 </>
               ) : null}
             </View>
@@ -854,7 +860,12 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
               tone="warning"
               value={result.summary.cleanupCandidateCount}
             />
-            <SummaryMetric label="Workspace" styles={styles} value={result.summary.workspaceCount} />
+            <SummaryMetric label="등록 Git Project" styles={styles} value={result.summary.projectCount} />
+            <SummaryMetric
+              label="활성 Workspace"
+              styles={styles}
+              value={result.summary.workspaceCount}
+            />
             <SummaryMetric label="저장소" styles={styles} value={result.summary.repositoryCount} />
             <SummaryMetric label="로컬 브랜치" styles={styles} value={result.summary.branchCount} />
             <SummaryMetric label="경고" styles={styles} tone="warning" value={result.summary.warningCount} />
@@ -889,7 +900,9 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
           <View style={styles.sectionHeader}>
             <View style={styles.sectionCopy}>
               <Text style={styles.sectionTitle}>저장소</Text>
-              <Text style={styles.sectionDescription}>저장소를 펼쳐 Workspace와 판단 근거를 확인합니다.</Text>
+              <Text style={styles.sectionDescription}>
+                저장소를 펼쳐 활성 Workspace와 판단 근거를 확인합니다.
+              </Text>
             </View>
             <View accessibilityRole="tablist" style={styles.filters}>
               {FILTERS.map((item) => {
@@ -922,7 +935,9 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
                 <Icon name="GitBranch" size={24} color={theme.colors.foregroundMuted} />
               </View>
               <Text style={styles.stateTitle}>표시할 Git 저장소가 없습니다</Text>
-              <Text style={styles.stateText}>선택한 Host에 Git Workspace가 추가되면 이곳에 표시됩니다.</Text>
+              <Text style={styles.stateText}>
+                선택한 Host에 Git Project가 등록되면 이곳에 표시됩니다.
+              </Text>
             </View>
           ) : visibleRepositories.length === 0 ? (
             <View style={styles.statePanel}>
@@ -958,7 +973,7 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
           )}
         </View>
 
-        <Text style={styles.footnote}>Workspace와 Git ref는 변경하지 않습니다.</Text>
+        <Text style={styles.footnote}>Project, Workspace와 Git ref는 변경하지 않습니다.</Text>
       </View>
     </ScrollView>
   );

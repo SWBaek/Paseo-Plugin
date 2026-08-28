@@ -20,6 +20,7 @@ const GIT_MAX_BUFFER_BYTES = 4 * 1024 * 1024;
 
 export interface WorkspaceListEntry {
   id: string;
+  projectId: string;
   projectDisplayName: string;
   projectRootPath: string;
   projectKind: "git" | "directory" | "non_git";
@@ -33,6 +34,21 @@ export interface WorkspaceListEntry {
   } | null;
 }
 
+export interface ProjectListEntry {
+  id: string;
+  displayName: string;
+  rootPath: string;
+  kind: "git" | "directory" | "non_git";
+}
+
+export interface ProjectListResult {
+  projects: ProjectListEntry[];
+}
+
+export interface ProjectSource {
+  list(): Promise<ProjectListResult>;
+}
+
 export interface WorkspacePage {
   entries: WorkspaceListEntry[];
   pageInfo: {
@@ -43,6 +59,11 @@ export interface WorkspacePage {
 
 export interface WorkspacePageSource {
   list(page: { limit: number; cursor?: string }): Promise<WorkspacePage>;
+}
+
+export interface ScanSources {
+  projects: ProjectSource;
+  workspaces: WorkspacePageSource;
 }
 
 export interface GitCommandResult {
@@ -75,11 +96,33 @@ export interface ScanOptions {
   now?: () => Date;
 }
 
-interface DiscoveredWorkspace {
-  workspace: WorkspaceListEntry;
+interface DiscoveredLocation {
   commonDirectory: string;
   commonDirectoryKey: string;
   topLevel: string;
+  directory: string;
+  priority: number;
+}
+
+interface LocationDiscovery {
+  location: DiscoveredLocation | null;
+  error: string | null;
+}
+
+interface ProjectDiscovery {
+  project: ProjectListEntry;
+  root: LocationDiscovery;
+  workspaces: Array<{
+    workspace: WorkspaceListEntry;
+    discovery: LocationDiscovery;
+  }>;
+}
+
+interface RepositoryGroup {
+  projects: Map<string, ProjectListEntry>;
+  workspaces: Map<string, WorkspaceListEntry>;
+  locations: Map<string, DiscoveredLocation>;
+  warnings: string[];
 }
 
 interface RawBranch {
@@ -247,11 +290,12 @@ async function listAllWorkspaces(
   }
 }
 
-async function discoverWorkspace(
-  workspace: WorkspaceListEntry,
+async function discoverLocation(
+  directory: string,
+  priority: number,
   git: GitRunner,
-): Promise<DiscoveredWorkspace> {
-  const { stdout } = await git(workspace.workspaceDirectory, [
+): Promise<DiscoveredLocation> {
+  const { stdout } = await git(directory, [
     "rev-parse",
     "--path-format=absolute",
     "--git-common-dir",
@@ -262,13 +306,73 @@ async function discoverWorkspace(
     throw new Error("Git did not return a common directory and worktree root.");
   }
 
-  const commonDirectory = normalizeAbsolutePath(workspace.workspaceDirectory, lines[0]);
+  const commonDirectory = normalizeAbsolutePath(directory, lines[0]);
   return {
-    workspace,
     commonDirectory,
     commonDirectoryKey: repositoryKey(commonDirectory),
-    topLevel: normalizeAbsolutePath(workspace.workspaceDirectory, lines[1]),
+    topLevel: normalizeAbsolutePath(directory, lines[1]),
+    directory,
+    priority,
   };
+}
+
+async function tryDiscoverLocation(
+  directory: string,
+  priority: number,
+  git: GitRunner,
+): Promise<LocationDiscovery> {
+  if (!directory.trim()) {
+    return { location: null, error: "경로가 비어 있습니다." };
+  }
+  try {
+    return { location: await discoverLocation(directory, priority, git), error: null };
+  } catch (error) {
+    return { location: null, error: formatError(error) };
+  }
+}
+
+async function discoverProjects(
+  projects: readonly ProjectListEntry[],
+  workspacesByProject: ReadonlyMap<string, WorkspaceListEntry[]>,
+  git: GitRunner,
+  concurrency: number,
+): Promise<ProjectDiscovery[]> {
+  const targets = projects.flatMap((project) => [
+    { kind: "project" as const, project },
+    ...(workspacesByProject.get(project.id) ?? []).map((workspace) => ({
+      kind: "workspace" as const,
+      project,
+      workspace,
+    })),
+  ]);
+  const attempts = await mapLimit(targets, concurrency, async (target) => ({
+    target,
+    discovery: await tryDiscoverLocation(
+      target.kind === "project" ? target.project.rootPath : target.workspace.workspaceDirectory,
+      target.kind === "project" ? 0 : 1,
+      git,
+    ),
+  }));
+  const discoveries = new Map<string, ProjectDiscovery>(
+    projects.map((project) => [
+      project.id,
+      {
+        project,
+        root: { location: null, error: "Project root를 조사하지 못했습니다." },
+        workspaces: [],
+      },
+    ]),
+  );
+
+  for (const { target, discovery } of attempts) {
+    const projectDiscovery = discoveries.get(target.project.id)!;
+    if (target.kind === "project") {
+      projectDiscovery.root = discovery;
+    } else {
+      projectDiscovery.workspaces.push({ workspace: target.workspace, discovery });
+    }
+  }
+  return projects.map((project) => discoveries.get(project.id)!);
 }
 
 function localBranchRefForBase(ref: string): string | null {
@@ -425,51 +529,67 @@ function emptyBase(): BaseResolution {
   return { state: "unknown", ref: null, localBranchRef: null, source: null };
 }
 
+function projectName(project: ProjectListEntry): string {
+  return project.displayName.trim() || path.basename(project.rootPath) || project.id;
+}
+
 function failedRepository(
-  workspace: WorkspaceListEntry,
-  message: string,
+  project: ProjectListEntry,
+  workspaces: readonly WorkspaceListEntry[],
+  messages: readonly string[],
 ): RepositorySnapshot {
-  const workspaceName = workspace.title?.trim() || workspace.name;
+  const warnings = messages.filter(
+    (message, index, collection) => collection.indexOf(message) === index,
+  );
+  const error = warnings[0] ?? "Git 저장소를 조사할 수 없습니다.";
   return {
-    id: `workspace:${workspace.id}`,
-    name: workspace.projectDisplayName || workspaceName,
-    rootPath: workspace.projectRootPath,
+    id: `project:${project.id}`,
+    name: projectName(project),
+    rootPath: project.rootPath,
     commonDirectory: null,
     base: emptyBase(),
-    workspaces: [
-      {
-        id: workspace.id,
-        name: workspaceName,
-        directory: workspace.workspaceDirectory,
-        currentBranch: workspace.gitRuntime?.currentBranch ?? null,
-        headOid: null,
-        detached: false,
-        isDirty: workspace.gitRuntime?.isDirty ?? null,
-        error: message,
-      },
-    ],
+    workspaces: workspaces.map((workspace) => ({
+      id: workspace.id,
+      name: workspace.title?.trim() || workspace.name,
+      directory: workspace.workspaceDirectory,
+      currentBranch: workspace.gitRuntime?.currentBranch ?? null,
+      headOid: null,
+      detached: false,
+      isDirty: workspace.gitRuntime?.isDirty ?? null,
+      error,
+    })),
     branches: [],
     branchCount: 0,
     cleanupCandidateCount: 0,
     reviewCount: 0,
-    error: message,
-    warnings: [message],
+    error,
+    warnings,
   };
 }
 
 async function scanRepository(
-  discovered: readonly DiscoveredWorkspace[],
+  group: RepositoryGroup,
   git: GitRunner,
   concurrency: number,
 ): Promise<RepositorySnapshot> {
-  const members = [...discovered].sort((left, right) =>
-    `${left.workspace.name}\0${left.workspace.workspaceDirectory}`.localeCompare(
-      `${right.workspace.name}\0${right.workspace.workspaceDirectory}`,
+  const projects = [...group.projects.values()].sort((left, right) =>
+    `${projectName(left)}\0${left.rootPath}\0${left.id}`.localeCompare(
+      `${projectName(right)}\0${right.rootPath}\0${right.id}`,
     ),
   );
-  const representative = members[0];
-  const cwd = representative.workspace.workspaceDirectory;
-  const warnings: string[] = [];
+  const members = [...group.workspaces.values()].sort((left, right) =>
+    `${left.name}\0${left.workspaceDirectory}\0${left.id}`.localeCompare(
+      `${right.name}\0${right.workspaceDirectory}\0${right.id}`,
+    ),
+  );
+  const locations = [...group.locations.values()].sort(
+    (left, right) =>
+      left.priority - right.priority || left.directory.localeCompare(right.directory),
+  );
+  const representativeProject = projects[0];
+  const representativeLocation = locations[0];
+  const cwd = representativeLocation.directory;
+  const warnings: string[] = [...group.warnings];
 
   const [base, branchAttempt, worktreeAttempt, workspaces] = await Promise.all([
     resolveBaseReference(cwd, git),
@@ -482,7 +602,7 @@ async function scanRepository(
     mapLimit(
       members,
       concurrency,
-      async ({ workspace }) => scanWorkspaceStatus(workspace, git),
+      async (workspace) => scanWorkspaceStatus(workspace, git),
     ),
   ]);
 
@@ -499,10 +619,10 @@ async function scanRepository(
     const error = `로컬 브랜치 조사 실패: ${branchAttempt.error ?? "알 수 없는 오류"}`;
     warnings.push(error);
     return {
-      id: representative.commonDirectoryKey,
-      name: representative.workspace.projectDisplayName || representative.workspace.name,
-      rootPath: representative.workspace.projectRootPath || representative.topLevel,
-      commonDirectory: representative.commonDirectory,
+      id: representativeLocation.commonDirectoryKey,
+      name: projectName(representativeProject),
+      rootPath: representativeProject.rootPath || representativeLocation.topLevel,
+      commonDirectory: representativeLocation.commonDirectory,
       base,
       workspaces,
       branches: [],
@@ -589,10 +709,10 @@ async function scanRepository(
     .sort((left, right) => left.name.localeCompare(right.name));
 
   return {
-    id: representative.commonDirectoryKey,
-    name: representative.workspace.projectDisplayName || representative.workspace.name,
-    rootPath: representative.workspace.projectRootPath || representative.topLevel,
-    commonDirectory: representative.commonDirectory,
+    id: representativeLocation.commonDirectoryKey,
+    name: projectName(representativeProject),
+    rootPath: representativeProject.rootPath || representativeLocation.topLevel,
+    commonDirectory: representativeLocation.commonDirectory,
     base,
     workspaces,
     branches,
@@ -604,56 +724,146 @@ async function scanRepository(
   };
 }
 
+function createRepositoryGroup(): RepositoryGroup {
+  return {
+    projects: new Map(),
+    workspaces: new Map(),
+    locations: new Map(),
+    warnings: [],
+  };
+}
+
+function locationKey(location: DiscoveredLocation): string {
+  return `${location.priority}:${repositoryKey(path.normalize(location.directory))}`;
+}
+
+function getRepositoryGroup(
+  groups: Map<string, RepositoryGroup>,
+  commonDirectoryKey: string,
+): RepositoryGroup {
+  const existing = groups.get(commonDirectoryKey);
+  if (existing) {
+    return existing;
+  }
+  const created = createRepositoryGroup();
+  groups.set(commonDirectoryKey, created);
+  return created;
+}
+
+function projectFromWorkspace(workspace: WorkspaceListEntry): ProjectListEntry {
+  return {
+    id: workspace.projectId,
+    displayName: workspace.projectDisplayName,
+    rootPath: workspace.projectRootPath,
+    kind: workspace.projectKind,
+  };
+}
+
 export async function scanBranchGarden(
-  source: WorkspacePageSource,
+  sources: ScanSources,
   options: ScanOptions = {},
 ): Promise<BranchGardenScanResult> {
   const git = options.git ?? createGitRunner();
   const concurrency = Math.max(1, options.concurrency ?? DEFAULT_CONCURRENCY);
   const pageLimit = Math.max(1, options.pageLimit ?? DEFAULT_PAGE_LIMIT);
-  const workspaces = await listAllWorkspaces(source, pageLimit);
+  const [projectResult, workspaces] = await Promise.all([
+    sources.projects.list(),
+    listAllWorkspaces(sources.workspaces, pageLimit),
+  ]);
   const activeWorkspaces = workspaces.filter((workspace) => workspace.archivingAt === null);
-  const skippedNonGitCount = activeWorkspaces.filter(
-    (workspace) => workspace.projectKind !== "git",
-  ).length;
   const warnings: string[] = [];
-  const gitWorkspaces = activeWorkspaces.filter((workspace) => {
-    if (workspace.projectKind !== "git") {
-      return false;
-    }
-    if (!workspace.workspaceDirectory.trim()) {
-      warnings.push(`${workspace.name}: Workspace 디렉터리가 없어 조사하지 못했습니다.`);
-      return false;
-    }
-    return true;
-  });
+  const projectsById = new Map<string, ProjectListEntry>();
 
-  const discoveries = await mapLimit(gitWorkspaces, concurrency, async (workspace) => {
-    try {
-      return { discovered: await discoverWorkspace(workspace, git), failed: null };
-    } catch (error) {
-      const message = `${workspace.name}: Git 저장소 판별 실패: ${formatError(error)}`;
-      return { discovered: null, failed: failedRepository(workspace, message) };
+  for (const project of projectResult.projects) {
+    projectsById.set(project.id, project);
+  }
+  for (const workspace of activeWorkspaces) {
+    if (projectsById.has(workspace.projectId)) {
+      continue;
     }
-  });
+    projectsById.set(workspace.projectId, projectFromWorkspace(workspace));
+    warnings.push(
+      `${workspace.projectDisplayName}: Project 목록에 없어 활성 Workspace 정보로 복구했습니다.`,
+    );
+  }
 
-  const grouped = new Map<string, DiscoveredWorkspace[]>();
+  const projects = [...projectsById.values()];
+  const skippedNonGitProjectCount = projects.filter((project) => project.kind !== "git").length;
+  const gitProjects = projects.filter((project) => project.kind === "git");
+  const workspacesByProject = new Map<string, WorkspaceListEntry[]>();
+  for (const workspace of activeWorkspaces) {
+    if (projectsById.get(workspace.projectId)?.kind !== "git") {
+      continue;
+    }
+    const members = workspacesByProject.get(workspace.projectId) ?? [];
+    members.push(workspace);
+    workspacesByProject.set(workspace.projectId, members);
+  }
+
+  const discoveries = await discoverProjects(
+    gitProjects,
+    workspacesByProject,
+    git,
+    concurrency,
+  );
+
+  const groups = new Map<string, RepositoryGroup>();
   const repositories: RepositorySnapshot[] = [];
   for (const discovery of discoveries) {
-    if (discovery.failed) {
-      repositories.push(discovery.failed);
+    const successfulLocations = [
+      discovery.root.location,
+      ...discovery.workspaces.map(
+        ({ discovery: workspaceDiscovery }) => workspaceDiscovery.location,
+      ),
+    ].filter((location): location is DiscoveredLocation => location !== null);
+    const groupKeys = [
+      ...new Set(successfulLocations.map((location) => location.commonDirectoryKey)),
+    ];
+    const projectWorkspaces = discovery.workspaces.map(({ workspace }) => workspace);
+
+    if (groupKeys.length === 0) {
+      const messages = [
+        `${projectName(discovery.project)}: Project root Git 저장소 판별 실패: ${discovery.root.error ?? "알 수 없는 오류"}`,
+        ...discovery.workspaces
+          .filter(({ discovery: workspaceDiscovery }) => workspaceDiscovery.error)
+          .map(
+            ({ workspace, discovery: workspaceDiscovery }) =>
+              `${workspace.name}: Workspace Git 저장소 판별 실패: ${workspaceDiscovery.error}`,
+          ),
+      ];
+      repositories.push(failedRepository(discovery.project, projectWorkspaces, messages));
       continue;
     }
-    if (!discovery.discovered) {
-      continue;
+
+    for (const key of groupKeys) {
+      getRepositoryGroup(groups, key).projects.set(discovery.project.id, discovery.project);
     }
-    const group = grouped.get(discovery.discovered.commonDirectoryKey) ?? [];
-    group.push(discovery.discovered);
-    grouped.set(discovery.discovered.commonDirectoryKey, group);
+    for (const location of successfulLocations) {
+      const group = getRepositoryGroup(groups, location.commonDirectoryKey);
+      group.locations.set(locationKey(location), location);
+    }
+
+    const fallbackGroupKey = discovery.root.location?.commonDirectoryKey ?? groupKeys[0];
+    if (discovery.root.error) {
+      getRepositoryGroup(groups, fallbackGroupKey).warnings.push(
+        `${projectName(discovery.project)}: Project root 조사 실패: ${discovery.root.error}`,
+      );
+    }
+    for (const { workspace, discovery: workspaceDiscovery } of discovery.workspaces) {
+      const key = workspaceDiscovery.location?.commonDirectoryKey ?? fallbackGroupKey;
+      const group = getRepositoryGroup(groups, key);
+      group.projects.set(discovery.project.id, discovery.project);
+      group.workspaces.set(workspace.id, workspace);
+      if (workspaceDiscovery.error) {
+        group.warnings.push(
+          `${workspace.name}: Workspace Git 저장소 판별 실패: ${workspaceDiscovery.error}`,
+        );
+      }
+    }
   }
 
   const scannedRepositories = await mapLimit(
-    [...grouped.values()],
+    [...groups.values()],
     concurrency,
     (group) => scanRepository(group, git, concurrency),
   );
@@ -673,6 +883,7 @@ export async function scanBranchGarden(
   return {
     scannedAt: (options.now ?? (() => new Date()))().toISOString(),
     summary: {
+      projectCount: gitProjects.length,
       workspaceCount: repositories.reduce(
         (total, repository) => total + repository.workspaces.length,
         0,
@@ -688,7 +899,7 @@ export async function scanBranchGarden(
       ),
       warningCount: allWarnings.length,
     },
-    skippedNonGitCount,
+    skippedNonGitProjectCount,
     repositories,
     warnings: allWarnings,
   };

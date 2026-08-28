@@ -19,6 +19,8 @@ import {
   scanBranchGarden,
   type GitProcessExecutor,
   type GitRunner,
+  type ProjectListEntry,
+  type ScanSources,
   type WorkspaceListEntry,
   type WorkspacePageSource,
 } from "./branch-garden.server";
@@ -68,6 +70,7 @@ function workspace(
 ): WorkspaceListEntry {
   return {
     id,
+    projectId: "fixture-project",
     projectDisplayName: "Fixture Repository",
     projectRootPath: directory,
     projectKind: "git",
@@ -77,6 +80,34 @@ function workspace(
     archivingAt: null,
     gitRuntime: null,
     ...overrides,
+  };
+}
+
+function project(
+  id: string,
+  rootPath: string,
+  overrides: Partial<ProjectListEntry> = {},
+): ProjectListEntry {
+  return {
+    id,
+    displayName: "Fixture Repository",
+    rootPath,
+    kind: "git",
+    ...overrides,
+  };
+}
+
+function sources(
+  projects: ProjectListEntry[],
+  workspaces: WorkspacePageSource,
+): ScanSources {
+  return {
+    projects: {
+      async list() {
+        return { projects };
+      },
+    },
+    workspaces,
   };
 }
 
@@ -226,9 +257,9 @@ describe("base ref resolution", () => {
   });
 });
 
-describe("Workspace pagination", () => {
+describe("Project and Workspace discovery", () => {
   it("stops with an error if a later page fails", async () => {
-    const source: WorkspacePageSource = {
+    const workspaceSource: WorkspacePageSource = {
       list: vi.fn(async ({ cursor }) => {
         if (!cursor) {
           return {
@@ -240,37 +271,118 @@ describe("Workspace pagination", () => {
       }),
     };
 
-    await expect(scanBranchGarden(source)).rejects.toThrow("page unavailable");
-    expect(source.list).toHaveBeenCalledTimes(2);
+    await expect(scanBranchGarden(sources([], workspaceSource))).rejects.toThrow("page unavailable");
+    expect(workspaceSource.list).toHaveBeenCalledTimes(2);
   });
 
-  it("only uses list and excludes non-Git workspaces", async () => {
+  it("fetches the complete Project list once and excludes non-Git Projects", async () => {
     const create = vi.fn(() => {
       throw new Error("create must not be called");
     });
     const archive = vi.fn(() => {
       throw new Error("archive must not be called");
     });
-    const source = {
-      list: vi.fn(async () => ({
-        entries: [workspace("directory", "C:/docs", { projectKind: "directory" })],
-        pageInfo: { hasMore: false, nextCursor: null },
-      })),
-      create,
-      archive,
+    const projectList = vi.fn(async () => ({
+      projects: [
+        project("docs", "C:/docs", { kind: "directory" }),
+        project("other", "C:/other", { kind: "non_git" }),
+      ],
+    }));
+    const workspaceList = vi.fn(async () => ({
+      entries: [workspace("directory", "C:/docs", {
+        projectId: "docs",
+        projectKind: "directory",
+      })],
+      pageInfo: { hasMore: false, nextCursor: null },
+    }));
+    const scanSources = {
+      projects: { list: projectList, create },
+      workspaces: {
+        list: workspaceList,
+        archive,
+      },
     };
 
-    const result = await scanBranchGarden(source);
+    const result = await scanBranchGarden(scanSources);
 
-    expect(result.skippedNonGitCount).toBe(1);
+    expect(result.skippedNonGitProjectCount).toBe(2);
+    expect(result.summary.projectCount).toBe(0);
     expect(result.repositories).toEqual([]);
-    expect(source.list).toHaveBeenCalledTimes(1);
+    expect(projectList).toHaveBeenCalledTimes(1);
+    expect(workspaceList).toHaveBeenCalledTimes(1);
     expect(create).not.toHaveBeenCalled();
     expect(archive).not.toHaveBeenCalled();
+  });
+
+  it("recovers an active Workspace whose Project is absent from the Project snapshot", async () => {
+    const workspaceSource: WorkspacePageSource = {
+      list: vi.fn(async () => ({
+        entries: [workspace("directory", "C:/docs", {
+          projectId: "docs",
+          projectKind: "directory",
+        })],
+        pageInfo: { hasMore: false, nextCursor: null },
+      })),
+    };
+
+    const result = await scanBranchGarden(sources([], workspaceSource));
+
+    expect(result.skippedNonGitProjectCount).toBe(1);
+    expect(result.repositories).toEqual([]);
+    expect(result.warnings).toContain(
+      "Fixture Repository: Project 목록에 없어 활성 Workspace 정보로 복구했습니다.",
+    );
   });
 });
 
 describe("real Git fixture", () => {
+  it("scans a registered Git Project with no active Workspace from its root", async () => {
+    const root = createTemporaryRoot();
+    const repository = path.join(root, "inactive project");
+    mkdirSync(repository);
+    fixtureGit(repository, ["init", "-b", "main"]);
+    fixtureGit(repository, ["config", "user.name", "Branch Garden Test"]);
+    fixtureGit(repository, ["config", "user.email", "branch-garden@example.invalid"]);
+    writeFileSync(path.join(repository, "README.md"), "inactive\n", "utf8");
+    fixtureGit(repository, ["add", "README.md"]);
+    fixtureGit(repository, ["commit", "-m", "initial"]);
+
+    const refsBefore = fixtureGit(repository, ["show-ref"]);
+    const statusBefore = fixtureGit(repository, ["status", "--porcelain=v1", "-z"]);
+    const workspaceSource: WorkspacePageSource = {
+      async list() {
+        return {
+          entries: [],
+          pageInfo: { hasMore: false, nextCursor: null },
+        };
+      },
+    };
+
+    const result = await scanBranchGarden(
+      sources(
+        [project("inactive", repository, { displayName: "Inactive Project" })],
+        workspaceSource,
+      ),
+      { now: () => new Date("2026-08-27T00:00:00.000Z") },
+    );
+
+    expect(BranchGardenScanResultSchema.safeParse(result).success).toBe(true);
+    expect(result.summary).toMatchObject({
+      projectCount: 1,
+      workspaceCount: 0,
+      repositoryCount: 1,
+      branchCount: 1,
+    });
+    expect(result.repositories[0]).toMatchObject({
+      name: "Inactive Project",
+      rootPath: repository,
+      workspaces: [],
+      error: null,
+    });
+    expect(fixtureGit(repository, ["show-ref"])).toBe(refsBefore);
+    expect(fixtureGit(repository, ["status", "--porcelain=v1", "-z"])).toBe(statusBefore);
+  });
+
   it("groups worktrees once, preserves Workspaces, and does not change Git state", async () => {
     const root = createTemporaryRoot();
     const repository = path.join(root, "repo with spaces");
@@ -305,13 +417,20 @@ describe("real Git fixture", () => {
     const refsBefore = fixtureGit(repository, ["show-ref"]);
     const statusBefore = fixtureGit(repository, ["status", "--porcelain=v1", "-z"]);
     const entries = [
-      workspace("main", repository, { title: "Main Workspace" }),
-      workspace("docs", root, { projectKind: "non_git" }),
-      workspace("linked", linkedWorktree, { title: "Feature Workspace" }),
-      workspace("detached", detachedWorktree, { title: "Detached Workspace" }),
-      workspace("missing", missingRepository, { title: "Missing Workspace" }),
+      workspace("main", repository, { projectId: "repo", title: "Main Workspace" }),
+      workspace("docs", root, { projectId: "docs", projectKind: "non_git" }),
+      workspace("linked", linkedWorktree, { projectId: "repo", title: "Feature Workspace" }),
+      workspace("detached", detachedWorktree, {
+        projectId: "repo",
+        title: "Detached Workspace",
+      }),
+      workspace("missing", missingRepository, {
+        projectId: "missing",
+        projectRootPath: missingRepository,
+        title: "Missing Workspace",
+      }),
     ];
-    const source: WorkspacePageSource = {
+    const workspaceSource: WorkspacePageSource = {
       async list({ cursor }) {
         return cursor
           ? {
@@ -333,14 +452,26 @@ describe("real Git fixture", () => {
       return actualGit(cwd, args);
     };
 
-    const result = await scanBranchGarden(source, {
-      git: countedGit,
-      now: () => new Date("2026-08-27T00:00:00.000Z"),
-    });
+    const result = await scanBranchGarden(
+      sources(
+        [
+          project("repo", repository),
+          project("repo-alias", repository),
+          project("docs", root, { kind: "non_git" }),
+          project("missing", missingRepository),
+        ],
+        workspaceSource,
+      ),
+      {
+        git: countedGit,
+        now: () => new Date("2026-08-27T00:00:00.000Z"),
+      },
+    );
 
     expect(BranchGardenScanResultSchema.safeParse(result).success).toBe(true);
     expect(result.scannedAt).toBe("2026-08-27T00:00:00.000Z");
-    expect(result.skippedNonGitCount).toBe(1);
+    expect(result.skippedNonGitProjectCount).toBe(1);
+    expect(result.summary.projectCount).toBe(3);
     expect(result.summary.workspaceCount).toBe(4);
     expect(result.summary.repositoryCount).toBe(2);
     expect(worktreeListCount).toBe(1);

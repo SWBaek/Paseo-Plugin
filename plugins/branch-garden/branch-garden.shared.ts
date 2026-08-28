@@ -71,13 +71,14 @@ export const RepositorySnapshotSchema = z.object({
 export const BranchGardenScanResultSchema = z.object({
   scannedAt: z.string(),
   summary: z.object({
+    projectCount: z.number().int().nonnegative(),
     workspaceCount: z.number().int().nonnegative(),
     repositoryCount: z.number().int().nonnegative(),
     branchCount: z.number().int().nonnegative(),
     cleanupCandidateCount: z.number().int().nonnegative(),
     warningCount: z.number().int().nonnegative(),
   }),
-  skippedNonGitCount: z.number().int().nonnegative(),
+  skippedNonGitProjectCount: z.number().int().nonnegative(),
   repositories: z.array(RepositorySnapshotSchema),
   warnings: z.array(z.string()),
 });
