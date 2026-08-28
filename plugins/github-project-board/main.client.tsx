@@ -1,4 +1,4 @@
-import { type PluginSurfaceProps, type PluginTheme, useRpc } from "@getpaseo/plugin";
+import { Icon, type PluginSurfaceProps, type PluginTheme, useRpc } from "@getpaseo/plugin";
 import { useQuery } from "@tanstack/react-query";
 import React, { type ReactNode, useCallback, useMemo, useState } from "react";
 import {
@@ -9,8 +9,6 @@ import {
   Text,
   TextInput,
   View,
-  type StyleProp,
-  type ViewStyle,
 } from "react-native";
 import {
   githubProjectBoardList,
@@ -29,8 +27,6 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       paddingBottom: compact ? 32 : 48,
     },
     shell: { width: "100%", maxWidth: 1640, alignSelf: "center", gap: 24 },
-    tintedSurface: { position: "relative", overflow: "hidden" },
-    tintLayer: { ...StyleSheet.absoluteFillObject },
     projectHeader: { gap: 12 },
     headerTop: {
       flexDirection: compact ? "column" : "row",
@@ -66,7 +62,10 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       paddingVertical: 12,
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: theme.colors.foregroundMuted,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface2,
+      flexDirection: "row",
+      gap: 8,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -84,6 +83,8 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       paddingVertical: 12,
       borderRadius: 8,
       backgroundColor: theme.colors.accent,
+      flexDirection: "row",
+      gap: 8,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -121,7 +122,8 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       paddingVertical: 10,
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: theme.colors.foregroundMuted,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface2,
     },
     projectSelectorActive: { borderColor: theme.colors.accent },
     projectSelectorText: {
@@ -149,7 +151,11 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       minHeight: 44,
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: theme.colors.foregroundMuted,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface2,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
       justifyContent: "center",
       paddingHorizontal: 12,
     },
@@ -159,15 +165,41 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       lineHeight: 20,
       fontWeight: "400",
       padding: 0,
+      flex: 1,
     },
     resultText: { color: theme.colors.foregroundMuted, fontSize: 10, lineHeight: 16, fontWeight: "400" },
-    notice: { borderRadius: 8, padding: 16, gap: 4 },
-    noticeTitle: { color: theme.colors.foreground, fontSize: 12, lineHeight: 18, fontWeight: "600" },
+    notice: {
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface1,
+      padding: 16,
+      gap: 8,
+    },
+    noticeWarning: { borderColor: theme.colors.statusWarning },
+    noticeError: { borderColor: theme.colors.statusDanger },
+    noticeHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+    noticeTitle: {
+      flex: 1,
+      minWidth: 0,
+      color: theme.colors.foreground,
+      fontSize: 12,
+      lineHeight: 18,
+      fontWeight: "600",
+    },
+    noticeWarningTitle: { color: theme.colors.statusWarning },
     noticeErrorTitle: { color: theme.colors.statusDanger },
     noticeText: { color: theme.colors.foregroundMuted, fontSize: 12, lineHeight: 18, fontWeight: "400" },
     boardScroll: { width: "100%" },
     board: { flexDirection: "row", alignItems: "flex-start", gap: 16, paddingBottom: 8 },
-    column: { width: 320, borderRadius: 10 },
+    column: {
+      width: 320,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface1,
+      overflow: "hidden",
+    },
     compactColumn: { width: "100%" },
     columnHeader: {
       minHeight: 52,
@@ -191,7 +223,7 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       fontWeight: "500",
       textAlign: "right",
     },
-    divider: { height: 1, backgroundColor: theme.colors.foregroundMuted, opacity: 0.18 },
+    divider: { height: 1, backgroundColor: theme.colors.border },
     card: { minHeight: 56, paddingHorizontal: 16, paddingVertical: 12, gap: 6 },
     cardIdentity: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6 },
     repository: { color: theme.colors.foregroundMuted, fontSize: 10, lineHeight: 15, fontWeight: "500" },
@@ -219,10 +251,14 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       alignItems: "center",
       paddingHorizontal: 12,
       paddingVertical: 10,
+      borderWidth: 1,
       borderBottomWidth: 2,
-      borderBottomColor: theme.colors.foregroundMuted,
+      borderColor: theme.colors.border,
+      borderBottomColor: theme.colors.border,
+      borderRadius: 8,
+      backgroundColor: theme.colors.surface2,
     },
-    tabActive: { borderBottomColor: theme.colors.accent },
+    tabActive: { borderColor: theme.colors.accent, borderBottomColor: theme.colors.accent },
     tabText: { color: theme.colors.foregroundMuted, fontSize: 12, lineHeight: 18, fontWeight: "500" },
     tabTextActive: { color: theme.colors.foreground },
     stateScreen: {
@@ -240,7 +276,11 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       justifyContent: "center",
       gap: 8,
       borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface1,
     },
+    stateIcon: { marginBottom: 4 },
     stateTitle: {
       color: theme.colors.foreground,
       fontSize: 14,
@@ -268,18 +308,31 @@ function createStyles(theme: PluginTheme, compact: boolean) {
 
 type Styles = ReturnType<typeof createStyles>;
 
-interface TintedSurfaceProps {
+interface NoticeProps {
   children: ReactNode;
-  opacity?: number;
-  style?: StyleProp<ViewStyle>;
   styles: Styles;
-  tone: string;
+  theme: PluginTheme;
+  title: string;
+  tone: "warning" | "error";
 }
 
-function TintedSurface({ children, opacity = 0.05, style, styles, tone }: TintedSurfaceProps) {
+function Notice({ children, styles, theme, title, tone }: NoticeProps) {
+  const error = tone === "error";
   return (
-    <View style={[styles.tintedSurface, style]}>
-      <View pointerEvents="none" style={[styles.tintLayer, { backgroundColor: tone, opacity }]} />
+    <View style={[styles.notice, error ? styles.noticeError : styles.noticeWarning]}>
+      <View style={styles.noticeHeader}>
+        <Icon
+          name={error ? "CircleAlert" : "TriangleAlert"}
+          size={16}
+          color={error ? theme.colors.statusDanger : theme.colors.statusWarning}
+        />
+        <Text style={[
+          styles.noticeTitle,
+          error ? styles.noticeErrorTitle : styles.noticeWarningTitle,
+        ]}>
+          {title}
+        </Text>
+      </View>
       {children}
     </View>
   );
@@ -328,20 +381,14 @@ function IssueCard({ issue, onOpen, styles }: {
   );
 }
 
-function BoardColumn({ column, compact, onOpen, styles, theme }: {
+function BoardColumn({ column, compact, onOpen, styles }: {
   column: GithubProjectColumn;
   compact: boolean;
   onOpen: (url: string) => void;
   styles: Styles;
-  theme: PluginTheme;
 }) {
   return (
-    <TintedSurface
-      tone={theme.colors.foregroundMuted}
-      opacity={0.035}
-      style={[styles.column, compact ? styles.compactColumn : null]}
-      styles={styles}
-    >
+    <View style={[styles.column, compact ? styles.compactColumn : null]}>
       <View style={styles.columnHeader}>
         <Text style={styles.columnTitle} numberOfLines={1}>{column.name}</Text>
         <Text style={styles.columnCount}>{column.issues.length}개</Text>
@@ -359,11 +406,12 @@ function BoardColumn({ column, compact, onOpen, styles, theme }: {
           <Text style={styles.emptyColumnText}>이 상태에 표시할 이슈가 없습니다.</Text>
         </View>
       )}
-    </TintedSurface>
+    </View>
   );
 }
 
-function FullScreenState({ message, onRetry, retrying, styles, theme, title }: {
+function FullScreenState({ kind = "loading", message, onRetry, retrying, styles, theme, title }: {
+  kind?: "loading" | "empty" | "error";
   message: string;
   onRetry?: () => void;
   retrying?: boolean;
@@ -371,14 +419,14 @@ function FullScreenState({ message, onRetry, retrying, styles, theme, title }: {
   theme: PluginTheme;
   title: string;
 }) {
+  const iconName = kind === "error" ? "CircleAlert" : kind === "empty" ? "Inbox" : "RefreshCw";
+  const iconColor = kind === "error" ? theme.colors.statusDanger : theme.colors.foregroundMuted;
   return (
     <View style={styles.stateScreen}>
-      <TintedSurface
-        tone={onRetry ? theme.colors.statusDanger : theme.colors.foregroundMuted}
-        opacity={onRetry ? 0.05 : 0.04}
-        style={styles.statePanel}
-        styles={styles}
-      >
+      <View style={styles.statePanel}>
+        <View style={styles.stateIcon}>
+          <Icon name={iconName} size={24} color={iconColor} />
+        </View>
         <Text style={styles.stateTitle}>{title}</Text>
         <Text style={styles.stateText}>{message}</Text>
         {onRetry ? (
@@ -394,10 +442,11 @@ function FullScreenState({ message, onRetry, retrying, styles, theme, title }: {
               retrying ? styles.disabled : null,
             ]}
           >
+            <Icon name="RefreshCw" size={16} color={theme.colors.accentForeground} />
             <Text style={styles.primaryButtonText}>{retrying ? "조회 중…" : "다시 시도"}</Text>
           </Pressable>
         ) : null}
-      </TintedSurface>
+      </View>
     </View>
   );
 }
@@ -469,6 +518,7 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
   if (!projectListQuery.data) {
     return (
       <FullScreenState
+        kind="error"
         message={errorMessage(projectListQuery.error)}
         onRetry={() => void projectListQuery.refetch()}
         retrying={projectListQuery.isFetching}
@@ -482,6 +532,7 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
   if (!selectedProject) {
     return (
       <FullScreenState
+        kind="empty"
         message="GitHub에서 개인 Project를 만든 뒤 다시 시도하세요."
         onRetry={() => void projectListQuery.refetch()}
         retrying={projectListQuery.isFetching}
@@ -506,6 +557,7 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
   if (!query.data) {
     return (
       <FullScreenState
+        kind="error"
         message={errorMessage(query.error)}
         onRetry={() => void query.refetch()}
         retrying={query.isFetching}
@@ -537,6 +589,7 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
                 onPress={() => void openUrl(result.project.url)}
                 style={({ pressed }) => [styles.secondaryButton, pressed ? styles.pressed : null]}
               >
+                <Icon name="ExternalLink" size={16} color={theme.colors.foreground} />
                 <Text style={styles.secondaryButtonText}>GitHub에서 열기</Text>
               </Pressable>
               <Pressable
@@ -554,6 +607,7 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
                   refreshing ? styles.disabled : null,
                 ]}
               >
+                <Icon name="RefreshCw" size={16} color={theme.colors.accentForeground} />
                 <Text style={styles.primaryButtonText}>{refreshing ? "조회 중…" : "새로고침"}</Text>
               </Pressable>
             </View>
@@ -610,6 +664,7 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
 
         <View style={styles.toolbar}>
           <View style={styles.searchBox}>
+            <Icon name="Search" size={16} color={theme.colors.foregroundMuted} />
             <TextInput
               accessibilityLabel="GitHub Project 이슈 검색"
               autoCapitalize="none"
@@ -629,50 +684,65 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
         </View>
 
         {query.error ? (
-          <TintedSurface tone={theme.colors.statusDanger} opacity={0.05} style={styles.notice} styles={styles}>
-            <Text style={[styles.noticeTitle, styles.noticeErrorTitle]}>마지막 성공 결과를 표시하고 있습니다</Text>
+          <Notice
+            styles={styles}
+            theme={theme}
+            title="마지막 성공 결과를 표시하고 있습니다"
+            tone="error"
+          >
             <Text style={styles.noticeText}>새로고침 실패: {errorMessage(query.error)}</Text>
-          </TintedSurface>
+          </Notice>
         ) : null}
 
         {projectListQuery.error ? (
-          <TintedSurface tone={theme.colors.statusDanger} opacity={0.05} style={styles.notice} styles={styles}>
-            <Text style={[styles.noticeTitle, styles.noticeErrorTitle]}>Project 목록을 갱신하지 못했습니다</Text>
+          <Notice styles={styles} theme={theme} title="Project 목록을 갱신하지 못했습니다" tone="error">
             <Text style={styles.noticeText}>마지막 성공 목록을 표시하고 있습니다: {errorMessage(projectListQuery.error)}</Text>
-          </TintedSurface>
+          </Notice>
         ) : null}
 
         {linkError ? (
-          <TintedSurface tone={theme.colors.statusDanger} opacity={0.05} style={styles.notice} styles={styles}>
-            <Text style={[styles.noticeTitle, styles.noticeErrorTitle]}>링크를 열지 못했습니다</Text>
+          <Notice styles={styles} theme={theme} title="링크를 열지 못했습니다" tone="error">
             <Text style={styles.noticeText}>{linkError}</Text>
-          </TintedSurface>
+          </Notice>
         ) : null}
 
         {result.warnings.length > 0 ? (
-          <TintedSurface tone={theme.colors.foregroundMuted} opacity={0.04} style={styles.notice} styles={styles}>
-            <Text style={styles.noticeTitle}>일부 항목을 완전히 조회하지 못했습니다 · {result.warnings.length}</Text>
+          <Notice
+            styles={styles}
+            theme={theme}
+            title={`일부 항목을 완전히 조회하지 못했습니다 · ${result.warnings.length}`}
+            tone="warning"
+          >
             {result.warnings.map((warning, index) => (
               <Text key={`${index}:${warning}`} style={styles.noticeText}>• {warning}</Text>
             ))}
-          </TintedSurface>
+          </Notice>
         ) : null}
 
         {result.columns.length === 0 ? (
-          <TintedSurface tone={theme.colors.foregroundMuted} opacity={0.04} style={styles.statePanel} styles={styles}>
+          <View style={styles.statePanel}>
+            <View style={styles.stateIcon}>
+              <Icon name="Columns3" size={24} color={theme.colors.foregroundMuted} />
+            </View>
             <Text style={styles.stateTitle}>표시할 Status 칼럼이 없습니다</Text>
             <Text style={styles.stateText}>GitHub Project의 Status 필드를 확인하세요.</Text>
-          </TintedSurface>
+          </View>
         ) : result.issueCount === 0 ? (
-          <TintedSurface tone={theme.colors.foregroundMuted} opacity={0.04} style={styles.statePanel} styles={styles}>
+          <View style={styles.statePanel}>
+            <View style={styles.stateIcon}>
+              <Icon name="Inbox" size={24} color={theme.colors.foregroundMuted} />
+            </View>
             <Text style={styles.stateTitle}>Project에 표시할 이슈가 없습니다</Text>
             <Text style={styles.stateText}>이 저장소의 이슈를 GitHub Project에 추가하세요.</Text>
-          </TintedSurface>
+          </View>
         ) : hasSearch && visibleIssueCount === 0 ? (
-          <TintedSurface tone={theme.colors.foregroundMuted} opacity={0.04} style={styles.statePanel} styles={styles}>
+          <View style={styles.statePanel}>
+            <View style={styles.stateIcon}>
+              <Icon name="Search" size={24} color={theme.colors.foregroundMuted} />
+            </View>
             <Text style={styles.stateTitle}>검색 결과가 없습니다</Text>
             <Text style={styles.stateText}>검색어를 줄이거나 다른 단어로 찾아보세요.</Text>
-          </TintedSurface>
+          </View>
         ) : layout.compact ? (
           <>
             <ScrollView
@@ -709,7 +779,6 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
                 compact
                 onOpen={(url) => void openUrl(url)}
                 styles={styles}
-                theme={theme}
               />
             ) : null}
           </>
@@ -727,7 +796,6 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
                 compact={false}
                 onOpen={(url) => void openUrl(url)}
                 styles={styles}
-                theme={theme}
               />
             ))}
           </ScrollView>
