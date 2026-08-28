@@ -30,25 +30,32 @@ Paseo는 플러그인 surface의 route, 화면 header, 닫기 동작, host picke
 - `packages/app/...`의 내부 컴포넌트나 토큰을 가져오지 않는다. 본체의 `<Button>`, `<StatusBadge>`, `<SettingsSection>`, `confirmDialog` 같은 이름은 공개 플러그인 API가 아니다.
 - 클라이언트에서는 현재 생성 타입과 Plugin reference가 허용한 runtime module만 가져온다.
 - 같은 플러그인 안에서 동일한 의미의 UI가 세 곳 이상 쓰이면 공통 컴포넌트로 만든다. 서로 독립적으로 설치되는 플러그인 사이에는 런타임 결합을 만들지 않는다.
-- 기여 icon은 현재 플러그인 계약이 요구하는 Lucide 이름을 사용한다. surface 내부 icon 컴포넌트는 생성 타입에 실제로 노출된 경우에만 사용한다.
+- 기여 icon은 현재 플러그인 계약이 요구하는 Lucide 이름을 사용한다.
+- 현재 기준인 Paseo `0.7.0-beta.1`의 surface 내부 icon은 `@getpaseo/plugin`이 제공하는 `Icon`을 `*.client.tsx`에서 사용한다. `lucide-react-native`나 `react-native-svg`를 직접 가져오지 않는다.
+- 내부 icon은 action이나 상태를 더 빨리 이해하게 하는 경우에만 사용하고, 텍스트 label이나 접근성 설명을 대체하지 않는다.
 
 ## Theme and color
 
 모든 색은 현재 플러그인의 `theme.colors`에서 가져온다.
 
 - Root view 배경: `surface0`
+- 카드, 칼럼, 데이터 그룹과 상태 panel: `surface1`
+- 검색, filter, selector와 secondary control: `surface2`
+- outline과 divider: `border`
 - 주요 제목과 본문: `foreground`
 - 설명, label, metadata, placeholder와 비활성 문맥: `foregroundMuted`
 - 주 행동과 선택 상태: `accent`
 - `accent` 배경 위의 글자: `accentForeground`
+- 성공 상태와 정상 완료 신호: `statusSuccess`
+- 주의, 부분 실패와 검토 필요 상태: `statusWarning`
 - 오류와 파괴적 의미: `statusDanger`
-- `surface1`, `surface2`, `border`, `statusSuccess`, `statusWarning` 등은 대상 `paseo-plugin.d.ts`에 있을 때만 그 의미에 맞게 사용한다.
 
 추가 규칙:
 
 - 모든 `Text`에 색을 지정한다. React Native 기본 글자색에 의존하지 않는다.
 - 검정, 흰색 또는 특정 theme에 맞춘 hex 색상을 UI에 하드코딩하지 않는다. `addTheme`에 전달하는 theme palette는 예외다.
 - 생성 타입에 없는 토큰을 type cast로 우회하거나 이름을 추측하지 않는다.
+- `foregroundMuted`에 opacity를 겹쳐 카드·control·divider를 흉내 내지 않는다. 공개된 semantic surface와 border token을 직접 사용한다.
 - 강조색은 한 화면에서 가장 중요한 행동 하나에만 사용한다. 선택 상태와 상태 신호가 많아 강조색이 지배적으로 보이지 않게 한다.
 - Disabled 상태는 의미 색을 바꾸지 말고 바깥 pressable의 opacity로 표현한다.
 - Theme 또는 `layout.compact`가 바뀌면 스타일도 다시 계산되도록 `useMemo` 의존성을 유지한다.

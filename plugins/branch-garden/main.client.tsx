@@ -1,5 +1,5 @@
 import type { PluginSurfaceProps, PluginTheme } from "@getpaseo/plugin";
-import { useRpc } from "@getpaseo/plugin";
+import { Icon, useRpc } from "@getpaseo/plugin";
 import { useQuery } from "@tanstack/react-query";
 import React, { type ReactNode, useMemo, useState } from "react";
 import {
@@ -8,8 +8,6 @@ import {
   StyleSheet,
   Text,
   View,
-  type StyleProp,
-  type ViewStyle,
 } from "react-native";
 import {
   branchGardenScan,
@@ -57,8 +55,6 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       alignSelf: "center",
       gap: 24,
     },
-    tintedSurface: { position: "relative", overflow: "hidden" },
-    tintLayer: { ...StyleSheet.absoluteFillObject },
     overview: {
       flexDirection: compact ? "column" : "row",
       alignItems: compact ? "stretch" : "center",
@@ -86,6 +82,8 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       paddingHorizontal: 16,
       paddingVertical: 12,
       borderRadius: 8,
+      flexDirection: "row",
+      gap: 8,
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: theme.colors.accent,
@@ -122,6 +120,9 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       flexDirection: "row",
       flexWrap: "wrap",
       borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface1,
       padding: 8,
       gap: 4,
     },
@@ -139,6 +140,7 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       lineHeight: compact ? 26 : 30,
       fontWeight: "500",
     },
+    summaryValueWarning: { color: theme.colors.statusWarning },
     summaryLabel: {
       color: theme.colors.foregroundMuted,
       fontSize: 10,
@@ -154,7 +156,8 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       paddingVertical: 10,
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: theme.colors.foregroundMuted,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface2,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -166,11 +169,35 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       textAlign: "center",
     },
     filterTextActive: { color: theme.colors.foreground },
-    notice: { borderRadius: 8, padding: 16, gap: 4 },
-    noticeTitle: { color: theme.colors.foreground, fontSize: 12, lineHeight: 18, fontWeight: "600" },
+    notice: {
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface1,
+      padding: 16,
+      gap: 8,
+    },
+    noticeWarning: { borderColor: theme.colors.statusWarning },
+    noticeError: { borderColor: theme.colors.statusDanger },
+    noticeHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+    noticeTitle: {
+      flex: 1,
+      minWidth: 0,
+      color: theme.colors.foreground,
+      fontSize: 12,
+      lineHeight: 18,
+      fontWeight: "600",
+    },
+    noticeWarningTitle: { color: theme.colors.statusWarning },
     noticeErrorTitle: { color: theme.colors.statusDanger },
     noticeText: { color: theme.colors.foregroundMuted, fontSize: 12, lineHeight: 18, fontWeight: "400" },
-    tree: { borderRadius: 10 },
+    tree: {
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface1,
+      overflow: "hidden",
+    },
     treeHeader: {
       minHeight: 44,
       paddingHorizontal: 16,
@@ -187,7 +214,7 @@ function createStyles(theme: PluginTheme, compact: boolean) {
     },
     treeHeaderStatus: { width: 180, textAlign: "right" },
     treeHeaderBase: { width: 200 },
-    divider: { height: 1, backgroundColor: theme.colors.foregroundMuted, opacity: 0.18 },
+    divider: { height: 1, backgroundColor: theme.colors.border },
     repositoryRow: {
       minHeight: 64,
       paddingHorizontal: 16,
@@ -198,9 +225,8 @@ function createStyles(theme: PluginTheme, compact: boolean) {
     },
     disclosure: {
       width: 20,
-      color: theme.colors.foregroundMuted,
-      fontSize: 14,
-      textAlign: "center",
+      alignItems: "center",
+      justifyContent: "center",
       flexShrink: 0,
     },
     repositoryIdentity: { flex: 1, minWidth: 0, gap: 2 },
@@ -214,6 +240,8 @@ function createStyles(theme: PluginTheme, compact: boolean) {
     compactFacts: { color: theme.colors.foregroundMuted, fontSize: 10, lineHeight: 15, fontWeight: "400" },
     repositoryStatus: { width: 180, alignItems: "flex-end", gap: 2 },
     repositoryStatusValue: { color: theme.colors.foreground, fontSize: 12, lineHeight: 18, fontWeight: "500" },
+    repositoryStatusSuccess: { color: theme.colors.statusSuccess },
+    repositoryStatusWarning: { color: theme.colors.statusWarning },
     repositoryStatusError: { color: theme.colors.statusDanger },
     repositoryStatusCaption: { color: theme.colors.foregroundMuted, fontSize: 10, lineHeight: 15 },
     repositoryBase: {
@@ -262,6 +290,7 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       fontWeight: "400",
     },
     workspaceError: { color: theme.colors.statusDanger, fontSize: 10, lineHeight: 15, fontWeight: "400" },
+    statusWarningText: { color: theme.colors.statusWarning },
     branchEvidence: {
       width: 300,
       color: theme.colors.foregroundMuted,
@@ -286,7 +315,11 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       justifyContent: "center",
       gap: 8,
       borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      backgroundColor: theme.colors.surface1,
     },
+    stateIcon: { marginBottom: 4 },
     stateTitle: {
       color: theme.colors.foreground,
       fontSize: 14,
@@ -314,18 +347,31 @@ function createStyles(theme: PluginTheme, compact: boolean) {
 
 type Styles = ReturnType<typeof createStyles>;
 
-interface TintedSurfaceProps {
+interface NoticeProps {
   children: ReactNode;
-  opacity?: number;
-  style?: StyleProp<ViewStyle>;
   styles: Styles;
-  tone: string;
+  theme: PluginTheme;
+  title: string;
+  tone: "warning" | "error";
 }
 
-function TintedSurface({ children, opacity = 0.05, style, styles, tone }: TintedSurfaceProps) {
+function Notice({ children, styles, theme, title, tone }: NoticeProps) {
+  const error = tone === "error";
   return (
-    <View style={[styles.tintedSurface, style]}>
-      <View pointerEvents="none" style={[styles.tintLayer, { backgroundColor: tone, opacity }]} />
+    <View style={[styles.notice, error ? styles.noticeError : styles.noticeWarning]}>
+      <View style={styles.noticeHeader}>
+        <Icon
+          name={error ? "CircleAlert" : "TriangleAlert"}
+          size={16}
+          color={error ? theme.colors.statusDanger : theme.colors.statusWarning}
+        />
+        <Text style={[
+          styles.noticeTitle,
+          error ? styles.noticeErrorTitle : styles.noticeWarningTitle,
+        ]}>
+          {title}
+        </Text>
+      </View>
       {children}
     </View>
   );
@@ -339,20 +385,25 @@ function errorMessage(error: unknown): string {
   return error instanceof Error && error.message ? error.message : "알 수 없는 오류가 발생했습니다.";
 }
 
-function repositoryStatus(repository: RepositorySnapshot): { caption: string; value: string } {
+function repositoryStatus(repository: RepositorySnapshot): {
+  caption: string;
+  tone: "success" | "warning" | "error";
+  value: string;
+} {
   if (repository.error) {
-    return { value: "조사 필요", caption: "저장소 오류" };
+    return { value: "조사 필요", caption: "저장소 오류", tone: "error" };
   }
   if (repository.cleanupCandidateCount > 0) {
     return {
       value: `정리 후보 ${repository.cleanupCandidateCount}`,
       caption: repository.reviewCount > 0 ? `검토 필요 ${repository.reviewCount}` : "병합 · 미체크아웃",
+      tone: "warning",
     };
   }
   if (repository.reviewCount > 0) {
-    return { value: `검토 필요 ${repository.reviewCount}`, caption: "판단 근거 확인" };
+    return { value: `검토 필요 ${repository.reviewCount}`, caption: "판단 근거 확인", tone: "warning" };
   }
-  return { value: "정돈됨", caption: "확인 항목 없음" };
+  return { value: "정돈됨", caption: "확인 항목 없음", tone: "success" };
 }
 
 function workspaceHead(workspace: WorkspaceSnapshot): string {
@@ -386,10 +437,25 @@ function branchEvidence(branch: BranchSnapshot): string {
   return [merge, upstream, checkout].filter(Boolean).join(" · ");
 }
 
-function SummaryMetric({ label, styles, value }: { label: string; styles: Styles; value: number }) {
+function SummaryMetric({
+  label,
+  styles,
+  tone = "neutral",
+  value,
+}: {
+  label: string;
+  styles: Styles;
+  tone?: "neutral" | "warning";
+  value: number;
+}) {
   return (
     <View style={styles.summaryItem}>
-      <Text style={styles.summaryValue}>{value}</Text>
+      <Text style={[
+        styles.summaryValue,
+        tone === "warning" && value > 0 ? styles.summaryValueWarning : null,
+      ]}>
+        {value}
+      </Text>
       <Text style={styles.summaryLabel}>{label}</Text>
     </View>
   );
@@ -414,7 +480,13 @@ function WorkspaceRow({
     <View style={styles.dataRow}>
       <View style={styles.rowCopy}>
         <Text style={styles.rowTitle} numberOfLines={1}>{workspace.name}</Text>
-        <Text style={styles.rowSubtitle} numberOfLines={1}>
+        <Text
+          style={[
+            styles.rowSubtitle,
+            workspace.isDirty === true ? styles.statusWarningText : null,
+          ]}
+          numberOfLines={1}
+        >
           {workspaceHead(workspace)} · {dirtyLabel}
         </Text>
         {compact ? <Text style={styles.rowSubtitle} numberOfLines={2}>{workspace.directory}</Text> : null}
@@ -460,7 +532,12 @@ function BranchGroup({
   return (
     <View style={styles.group}>
       <View style={styles.groupHeader}>
-        <Text style={styles.groupLabel}>{CATEGORY_LABELS[category]}</Text>
+        <Text style={[
+          styles.groupLabel,
+          category === "keep" ? null : styles.statusWarningText,
+        ]}>
+          {CATEGORY_LABELS[category]}
+        </Text>
         <Text style={styles.groupCount}>{branches.length}</Text>
       </View>
       {branches.map((branch) => (
@@ -475,11 +552,13 @@ function RepositoryNode({
   focus,
   repository,
   styles,
+  theme,
 }: {
   compact: boolean;
   focus: RepositoryFilter;
   repository: RepositorySnapshot;
   styles: Styles;
+  theme: PluginTheme;
 }) {
   const [open, setOpen] = useState(
     repository.cleanupCandidateCount > 0 || repository.reviewCount > 0 || Boolean(repository.error),
@@ -502,20 +581,45 @@ function RepositoryNode({
         onPress={() => setOpen((value) => !value)}
         style={({ pressed }) => [styles.repositoryRow, pressed ? styles.pressed : null]}
       >
-        <Text style={styles.disclosure}>{open ? "▾" : "▸"}</Text>
+        <View style={styles.disclosure}>
+          <Icon
+            name={open ? "ChevronDown" : "ChevronRight"}
+            size={16}
+            color={theme.colors.foregroundMuted}
+          />
+        </View>
         <View style={styles.repositoryIdentity}>
           <Text style={styles.repositoryName} numberOfLines={1}>{repository.name}</Text>
           <Text style={styles.repositoryPath} numberOfLines={1}>{repository.rootPath}</Text>
           {compact ? (
-            <Text style={styles.compactFacts} numberOfLines={1}>
-              {status.value} · 브랜치 {repository.branchCount} · Workspace {repository.workspaces.length}
-            </Text>
+            <>
+              <Text style={[
+                styles.compactFacts,
+                status.tone === "error"
+                  ? styles.repositoryStatusError
+                  : status.tone === "warning"
+                    ? styles.repositoryStatusWarning
+                    : styles.repositoryStatusSuccess,
+              ]}>
+                {status.value}
+              </Text>
+              <Text style={styles.compactFacts} numberOfLines={1}>
+                브랜치 {repository.branchCount} · Workspace {repository.workspaces.length}
+              </Text>
+            </>
           ) : null}
         </View>
         {!compact ? (
           <>
             <View style={styles.repositoryStatus}>
-              <Text style={[styles.repositoryStatusValue, repository.error ? styles.repositoryStatusError : null]}>
+              <Text style={[
+                styles.repositoryStatusValue,
+                status.tone === "error"
+                  ? styles.repositoryStatusError
+                  : status.tone === "warning"
+                    ? styles.repositoryStatusWarning
+                    : styles.repositoryStatusSuccess,
+              ]}>
                 {status.value}
               </Text>
               <Text style={styles.repositoryStatusCaption}>{status.caption}</Text>
@@ -574,7 +678,13 @@ function RepositoryNode({
                 onPress={() => setShowKeep((value) => !value)}
                 style={({ pressed }) => [styles.keepToggle, pressed ? styles.pressed : null]}
               >
-                <Text style={styles.disclosure}>{showKeep ? "▾" : "▸"}</Text>
+                <View style={styles.disclosure}>
+                  <Icon
+                    name={showKeep ? "ChevronDown" : "ChevronRight"}
+                    size={16}
+                    color={theme.colors.foregroundMuted}
+                  />
+                </View>
                 <Text style={styles.keepToggleText}>유지 브랜치 {keepBranches.length}</Text>
                 <Text style={styles.keepToggleHint}>{showKeep ? "접기" : "펼치기"}</Text>
               </Pressable>
@@ -597,6 +707,7 @@ function RepositoryNode({
 }
 
 function FullScreenState({
+  kind = "loading",
   message,
   onRetry,
   retrying,
@@ -604,6 +715,7 @@ function FullScreenState({
   theme,
   title,
 }: {
+  kind?: "loading" | "error";
   message: string;
   onRetry?: () => void;
   retrying?: boolean;
@@ -614,12 +726,14 @@ function FullScreenState({
   return (
     <View style={[styles.screen, styles.content]}>
       <View style={styles.shell}>
-        <TintedSurface
-          tone={onRetry ? theme.colors.statusDanger : theme.colors.foregroundMuted}
-          opacity={onRetry ? 0.05 : 0.04}
-          style={styles.statePanel}
-          styles={styles}
-        >
+        <View style={styles.statePanel}>
+          <View style={styles.stateIcon}>
+            <Icon
+              name={kind === "error" ? "CircleAlert" : "RefreshCw"}
+              size={24}
+              color={kind === "error" ? theme.colors.statusDanger : theme.colors.foregroundMuted}
+            />
+          </View>
           <Text style={styles.stateTitle}>{title}</Text>
           <Text style={styles.stateText}>{message}</Text>
           {onRetry ? (
@@ -634,10 +748,11 @@ function FullScreenState({
                 retrying ? styles.disabled : null,
               ]}
             >
+              <Icon name="RefreshCw" size={16} color={theme.colors.accentForeground} />
               <Text style={styles.primaryButtonText}>{retrying ? "조사 중…" : "다시 시도"}</Text>
             </Pressable>
           ) : null}
-        </TintedSurface>
+        </View>
       </View>
     </View>
   );
@@ -671,6 +786,7 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
   if (!query.data) {
     return (
       <FullScreenState
+        kind="error"
         message={errorMessage(query.error)}
         onRetry={() => void query.refetch()}
         retrying={query.isFetching}
@@ -721,6 +837,7 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
               query.isFetching ? styles.disabled : null,
             ]}
           >
+            <Icon name="RefreshCw" size={16} color={theme.colors.accentForeground} />
             <Text style={styles.primaryButtonText}>{query.isFetching ? "조사 중…" : "새로고침"}</Text>
           </Pressable>
         </View>
@@ -730,29 +847,42 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
             <Text style={styles.sectionTitle}>개요</Text>
             <Text style={styles.sectionDescription}>현재 조사 결과의 전체 규모입니다.</Text>
           </View>
-          <TintedSurface tone={theme.colors.foregroundMuted} opacity={0.04} style={styles.summary} styles={styles}>
-            <SummaryMetric label="정리 후보" styles={styles} value={result.summary.cleanupCandidateCount} />
+          <View style={styles.summary}>
+            <SummaryMetric
+              label="정리 후보"
+              styles={styles}
+              tone="warning"
+              value={result.summary.cleanupCandidateCount}
+            />
             <SummaryMetric label="Workspace" styles={styles} value={result.summary.workspaceCount} />
             <SummaryMetric label="저장소" styles={styles} value={result.summary.repositoryCount} />
             <SummaryMetric label="로컬 브랜치" styles={styles} value={result.summary.branchCount} />
-            <SummaryMetric label="경고" styles={styles} value={result.summary.warningCount} />
-          </TintedSurface>
+            <SummaryMetric label="경고" styles={styles} tone="warning" value={result.summary.warningCount} />
+          </View>
         </View>
 
         {query.error ? (
-          <TintedSurface tone={theme.colors.statusDanger} opacity={0.05} style={styles.notice} styles={styles}>
-            <Text style={[styles.noticeTitle, styles.noticeErrorTitle]}>마지막 성공 결과를 표시하고 있습니다</Text>
+          <Notice
+            styles={styles}
+            theme={theme}
+            title="마지막 성공 결과를 표시하고 있습니다"
+            tone="error"
+          >
             <Text style={styles.noticeText}>새로고침 실패: {errorMessage(query.error)}</Text>
-          </TintedSurface>
+          </Notice>
         ) : null}
 
         {result.warnings.length > 0 ? (
-          <TintedSurface tone={theme.colors.foregroundMuted} opacity={0.04} style={styles.notice} styles={styles}>
-            <Text style={styles.noticeTitle}>일부 항목을 완전히 조사하지 못했습니다 · {result.warnings.length}</Text>
+          <Notice
+            styles={styles}
+            theme={theme}
+            title={`일부 항목을 완전히 조사하지 못했습니다 · ${result.warnings.length}`}
+            tone="warning"
+          >
             {result.warnings.map((warning, index) => (
               <Text key={`${index}:${warning}`} style={styles.noticeText}>• {warning}</Text>
             ))}
-          </TintedSurface>
+          </Notice>
         ) : null}
 
         <View style={styles.section}>
@@ -787,17 +917,23 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
           </View>
 
           {result.repositories.length === 0 ? (
-            <TintedSurface tone={theme.colors.foregroundMuted} opacity={0.04} style={styles.statePanel} styles={styles}>
+            <View style={styles.statePanel}>
+              <View style={styles.stateIcon}>
+                <Icon name="GitBranch" size={24} color={theme.colors.foregroundMuted} />
+              </View>
               <Text style={styles.stateTitle}>표시할 Git 저장소가 없습니다</Text>
               <Text style={styles.stateText}>선택한 Host에 Git Workspace가 추가되면 이곳에 표시됩니다.</Text>
-            </TintedSurface>
+            </View>
           ) : visibleRepositories.length === 0 ? (
-            <TintedSurface tone={theme.colors.foregroundMuted} opacity={0.04} style={styles.statePanel} styles={styles}>
+            <View style={styles.statePanel}>
+              <View style={styles.stateIcon}>
+                <Icon name="Search" size={24} color={theme.colors.foregroundMuted} />
+              </View>
               <Text style={styles.stateTitle}>이 필터에 해당하는 저장소가 없습니다</Text>
               <Text style={styles.stateText}>다른 필터를 선택해 전체 저장소를 확인하세요.</Text>
-            </TintedSurface>
+            </View>
           ) : (
-            <TintedSurface tone={theme.colors.foregroundMuted} opacity={0.025} style={styles.tree} styles={styles}>
+            <View style={styles.tree}>
               {!layout.compact ? (
                 <>
                   <View style={styles.treeHeader}>
@@ -815,9 +951,10 @@ export function MainSurface({ theme, layout, host }: PluginSurfaceProps) {
                   focus={filter}
                   repository={repository}
                   styles={styles}
+                  theme={theme}
                 />
               ))}
-            </TintedSurface>
+            </View>
           )}
         </View>
 
