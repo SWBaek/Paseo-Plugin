@@ -29,6 +29,7 @@ Runtime ID의 기준은 디렉터리명이나 package 이름이 아니라 각 �
 
 ```powershell
 npm install
+npm run check:git-source-imports
 npm run typecheck
 ```
 
@@ -70,6 +71,21 @@ paseo plugin logs branch-garden
 
 다른 host의 daemon을 관리할 때는 plugin 명령에 `--host <host>`를 추가합니다. 설치·reload·제거를 수행하기 전에는 `paseo plugin ls`로 대상 host와 runtime ID를 확인하세요.
 
+## Git source 배포와 update
+
+다른 daemon이나 PC에 배포할 때는 Git source와 monorepo `--path`를 사용합니다. Git 설치는 package manager나 install script를 실행하지 않으므로 먼저 runtime import 검사와 타입 검사를 통과시켜야 합니다.
+
+```powershell
+npm run check:git-source-imports
+npm run typecheck
+paseo plugin add SWBaek/Paseo-Plugin --path plugins/branch-garden
+paseo plugin add SWBaek/Paseo-Plugin --path plugins/github-project-board
+paseo plugin status
+paseo plugin update --all
+```
+
+`--ref`를 생략하면 default branch를 추적하고, 명시적 branch는 새 commit을 추적하며, tag와 commit은 고정됩니다. 기존 directory 설치와 Git 설치에 같은 runtime ID를 사용하지 마세요. 임시 ID를 이용한 검증, 실패 후보 롤백과 정리 절차는 [Git source 설치와 업데이트](docs/GIT_INSTALLATION.md)에 정리되어 있습니다.
+
 ## 저장소 구조
 
 ```text
@@ -79,7 +95,10 @@ paseo plugin logs branch-garden
 │   ├── branch-garden/
 │   └── github-project-board/
 ├── docs/
-│   └── DESIGN.md
+│   ├── DESIGN.md
+│   └── GIT_INSTALLATION.md
+├── scripts/
+│   └── check-git-source-imports.mjs
 ├── .github/
 │   ├── ISSUE_TEMPLATE/
 │   └── ISSUE_MANAGEMENT.md
@@ -105,6 +124,7 @@ paseo plugin logs branch-garden
 - UI 변경은 [Paseo Plugin Design Rules](docs/DESIGN.md)를 따릅니다.
 - wide/compact layout, 밝은/어두운 theme, loading·empty·error·disabled 상태와 접근성을 함께 확인합니다.
 - Git 또는 GitHub CLI 명령은 read-only allowlist와 상태 무변경 테스트를 유지합니다.
+- Git source로 배포하기 전에 `npm run check:git-source-imports`로 install 없이 사용할 수 없는 runtime dependency를 차단합니다.
 - 한 플러그인만 변경하면 해당 workspace를, 공통 계약·설치 상태·여러 플러그인을 변경하면 루트 전체를 검증합니다.
 - Plugin API 계약을 바꾸거나 새 기여 유형을 사용할 때는 공식 문서와 현재 CLI의 새 scaffold를 대조합니다.
 

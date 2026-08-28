@@ -6,6 +6,7 @@
     "plugins/*"
   ],
   "scripts": {
+    "check:git-source-imports": "node scripts/check-git-source-imports.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present"
   }
 }
