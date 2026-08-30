@@ -275,6 +275,7 @@ Plugin, surface, Sidebar item, panel, Command Center item, attachment source ID�
 
 ## 관련 문서
 
+- [실전 사용 예시](examples.md)
 - [전체 기능표](README.md)
 - [Backend와 Paseo SDK](backend-and-sdk.md)
 - [지원 경계](limitations.md)

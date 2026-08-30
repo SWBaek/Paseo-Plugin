@@ -20,6 +20,8 @@ Plugin API는 실험 단계다. 이 문서와 현재 배포된 공식 문서가 
 | Modal 표시 | 지원 | 클라이언트 컴포넌트에서 `@getpaseo/plugin/react-native`의 controlled `Modal`을 사용한다. compact에서는 bottom sheet, 그 외에는 중앙 dialog로 표시된다. |
 | 채팅 입력창 위에 버튼 추가 | 제한적으로 지원 | `addClientSide`와 `addComposerPill`로 특정 workspace/agent의 Composer track bar에 pill 형태 버튼을 추가한다. 임의 위치·임의 chrome의 Composer 버튼을 삽입하는 API는 아니다. |
 
+> 먼저 아이디어를 보고 싶다면 [실전 사용 예시](examples.md)에서 대시보드, 리뷰 도구, Composer 버튼, Issue 첨부, Timeline 카드 같은 결과물을 확인한다.
+
 ## 전체 기능표
 
 | 영역 | 만들 수 있는 것 | 핵심 API | 분류 |
@@ -63,6 +65,7 @@ Plugin API는 실험 단계다. 이 문서와 현재 배포된 공식 문서가 
 
 ## 문서 구성
 
+- [실전 사용 예시](examples.md): 무엇을 만들 수 있는지 보여주는 아이디어와 최소 코드 조각
 - [UI 기여 지점](ui-contributions.md): 각 UI 위치, 등록 필드, 열기 방식과 렌더링 책임
 - [Backend와 Paseo SDK](backend-and-sdk.md): RPC, Node 접근, SDK 동작, hook, runtime과 lifecycle
 - [지원 경계](limitations.md): 직접 지원·조합 가능·공개 API 없음의 구분과 대안
