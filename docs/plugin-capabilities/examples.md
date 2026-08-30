@@ -156,7 +156,7 @@ plugin.addClientSide(contributeClient);
 
 Paseo가 버튼 외형, pending/error 상태와 위치를 소유한다. Plugin은 언제 pill을 만들지, 안에 무엇을 보여줄지, 눌렀을 때 무엇을 할지만 정한다.
 
-이 저장소의 [`composer-compact`](../../plugins/composer-compact/)는 이 패턴을 실제로 사용해 `Compact` pill을 누르면 현재 Agent에 `/compact`를 전송한다.
+이 저장소의 [`composer-compact`](../../plugins/composer-compact/)는 이 패턴을 실제로 사용한다. `Compact` pill을 누르면 확인 Modal을 열고, 사용자가 `Compact`를 선택한 경우에만 현재 Agent에 `/compact`를 전송한다. 취소, backdrop, Escape, back action, compact sheet dismiss와 Plugin unload는 모두 명령을 보내지 않고 종료된다.
 
 ## 5. 확인 Modal과 결과 Toast
 

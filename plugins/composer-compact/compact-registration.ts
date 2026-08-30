@@ -7,6 +7,8 @@ import type {
 
 export const COMPACT_COMMAND = "/compact";
 
+export type RequestCompactConfirmation = (agentId: string) => Promise<boolean>;
+
 interface RegisteredPill {
   workspaceId: string;
   remove: PluginCleanup;
@@ -15,6 +17,7 @@ interface RegisteredPill {
 export function registerCompactPills(
   client: PluginClientContext,
   Component: ComponentType<PluginComposerPillProps>,
+  requestConfirmation: RequestCompactConfirmation,
 ): PluginCleanup {
   const pills = new Map<string, RegisteredPill>();
   const updatedAgentIds = new Set<string>();
@@ -43,14 +46,25 @@ export function registerCompactPills(
     if (registered?.workspaceId === workspaceId) return;
 
     removePill(agentId);
+    let action: Promise<void> | undefined;
     const remove = client.addComposerPill({
       id: "compact",
       title: "Compact agent context",
       workspaceId,
       agentId,
       Component,
-      async onPress() {
-        await client.paseo.agents.ref(agentId).send(COMPACT_COMMAND);
+      onPress() {
+        if (action) return action;
+
+        action = (async () => {
+          const confirmed = await requestConfirmation(agentId);
+          if (!confirmed) return;
+
+          await client.paseo.agents.ref(agentId).send(COMPACT_COMMAND);
+        })().finally(() => {
+          action = undefined;
+        });
+        return action;
       },
     });
     pills.set(agentId, { workspaceId, remove });

@@ -15,7 +15,7 @@
 | [`branch-garden`](plugins/branch-garden/) | Personal operations | 선택된 host의 활성 Git Workspace와 로컬 branch·worktree 상태를 읽기 전용으로 집계하는 전역 sidebar surface입니다. |
 | [`github-project-board`](plugins/github-project-board/) | Personal operations | 기존 GitHub CLI 인증으로 `SWBaek`의 GitHub Projects를 조회하고, 선택한 Project를 읽기 전용 칸반으로 보여주는 전역 sidebar surface입니다. |
 | [`tailscale-dashboard`](plugins/tailscale-dashboard/) | Personal operations | 선택된 host의 Tailscale Serve 구성을 읽기 전용으로 조사하고, 검증된 TailscaleOps 핵심 현황을 Paseo 안에 표시합니다. 전체 Dashboard는 필요할 때 시스템 브라우저로 엽니다. |
-| [`composer-compact`](plugins/composer-compact/) | Personal productivity | Agent의 Composer track bar에 `Compact` pill을 추가하고 클릭 한 번으로 해당 Agent에 `/compact`를 전송합니다. |
+| [`composer-compact`](plugins/composer-compact/) | Personal productivity | Agent의 Composer track bar에 `Compact` pill을 추가하고 확인 Modal에서 승인한 경우에만 해당 Agent에 `/compact`를 전송합니다. |
 
 Runtime ID의 기준은 디렉터리명이나 package 이름이 아니라 각 플러그인의 `paseo-plugin.json`입니다.
 
