@@ -8,6 +8,7 @@ const pluginsRoot = path.join(repositoryRoot, "plugins");
 
 const hostRuntimeModules = new Set([
   "@getpaseo/plugin",
+  "@getpaseo/plugin/react-native",
   "@getpaseo/plugin/server",
   "@tanstack/react-query",
   "react",
