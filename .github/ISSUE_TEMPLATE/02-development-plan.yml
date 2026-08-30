@@ -23,6 +23,7 @@ body:
         - branch-garden
         - github-project-board
         - tailscale-dashboard
+        - composer-compact
         - 새 플러그인
     validations:
       required: true
