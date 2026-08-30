@@ -60,6 +60,9 @@ npm run typecheck --workspace paseo-plugin
 - `plugins/tailscale-dashboard/`
   Audience: **Personal operations**
   Role: 선택된 호스트의 Tailscale Serve 구성을 읽기 전용으로 조사해 검증된 TailscaleOps 핵심 현황을 네이티브 카드로 표시하고, 전체 Dashboard를 선택적으로 시스템 브라우저에서 여는 전역 사이드바 surface를 제공한다.
+- `plugins/composer-compact/`
+  Audience: **Personal productivity**
+  Role: 각 Agent의 Composer track bar에 `Compact` pill을 추가하고 클릭 한 번으로 해당 Agent에 `/compact` 명령을 전송한다.
 
 ## Per-Plugin Change Routing
 
@@ -85,6 +88,7 @@ npm run typecheck --workspace paseo-plugin
 - `branch-garden`의 logic, server, shared 또는 view 동작을 바꾸면 `npm run typecheck --workspace branch-garden`과 `npm test --workspace branch-garden`을 모두 실행한다. Git 명령 변경은 read-only allowlist와 실제 Git 상태 무변경 테스트를 반드시 통과해야 한다.
 - `github-project-board`의 logic, server, shared 또는 view 동작을 바꾸면 `npm run typecheck --workspace github-project-board`와 `npm test --workspace github-project-board`를 모두 실행한다. GitHub CLI 명령 변경은 read-only allowlist 테스트를 반드시 통과해야 한다.
 - `tailscale-dashboard`의 server, shared 또는 view 동작을 바꾸면 `npm run typecheck --workspace tailscale-dashboard`와 `npm test --workspace tailscale-dashboard`를 모두 실행한다. Tailscale CLI 명령 변경은 `status --json`과 `serve status --json`만 허용하는 read-only allowlist 테스트를 반드시 통과해야 한다.
+- `composer-compact`의 client 또는 registration 동작을 바꾸면 `npm run typecheck --workspace composer-compact`와 `npm test --workspace composer-compact`를 모두 실행한다.
 - workspace 구조, 설치 상태 또는 여러 플러그인에 걸친 변경은 루트에서 `npm run typecheck`로 검사한다.
 - Git source 설치나 업데이트 경로를 변경하거나 배포를 준비할 때는 루트에서 `npm run check:git-source-imports`를 실행한다. Git 설치는 package manager와 install script를 실행하지 않으므로 runtime import는 host 제공 모듈, Node 기본 모듈과 플러그인 내부 상대 경로만 사용한다.
 - 같은 컴퓨터에서 소스를 편집하는 개발 흐름은 directory install과 `plugin reload`, 다른 daemon이나 PC에 배포하는 운영 흐름은 Git source의 `plugin add --path`와 `plugin update`를 사용한다. 기존 directory runtime과 Git 검증 runtime에는 서로 다른 ID를 사용한다.
