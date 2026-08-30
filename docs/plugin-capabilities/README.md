@@ -69,15 +69,15 @@ Plugin API는 실험 단계다. 이 문서와 현재 배포된 공식 문서가 
 
 ## 버전 및 선언 파일 주의사항
 
-이 저장소에 추적 중인 네 플러그인의 `paseo-plugin.d.ts`는 서로 같은 이전 스냅샷이며, 현재 `0.7.0-beta.2` CLI가 새로 생성하는 계약보다 오래됐다. 기존 파일에는 다음 항목이 없다.
+조사 시작 시 이 저장소에 추적 중인 네 플러그인의 `paseo-plugin.d.ts`는 서로 같은 이전 스냅샷이었고, 현재 `0.7.0-beta.2` CLI가 새로 생성하는 계약보다 오래됐다. 이후 네 선언 파일을 fresh scaffold와 동일하게 동기화해 다음 항목을 사용할 수 있게 했다.
 
 - `@getpaseo/plugin/react-native`의 `Modal`, `Icon`, `useToast`
 - `PluginClientContext`와 `PluginComposerPillContribution`
 - `PluginContext.addClientSide`
 
-따라서 기존 플러그인에서 이 기능을 사용하려면 임의로 ambient type을 덧붙이지 말고, 현재 CLI가 생성한 새 scaffold와 기존 플러그인을 대조해 생성 계약을 갱신해야 한다.
+네 workspace의 `@getpaseo/client`와 `@getpaseo/protocol` 개발 의존성도 `0.7.0-beta.2`로 고정했다. 앞으로 Paseo 버전을 올릴 때도 ambient type을 임의로 덧붙이지 말고, 현재 CLI가 생성한 새 scaffold와 기존 플러그인을 대조해 생성 계약을 함께 갱신한다.
 
-또한 현재 CLI가 만든 새 `package.json`의 typecheck용 `@getpaseo/client` 범위는 `^0.4.0`, `@getpaseo/protocol` 범위는 `^0.6.1`이다. 반면 같은 upstream tag의 SDK package는 `0.7.0-beta.2`이며 더 넓은 `PaseoApi`를 선언한다. SDK의 세부 메서드를 구현할 때는 workspace에 실제 설치된 dev dependency type도 확인하고, dependency 계약 정합성 변경은 Plugin source 변경과 별도로 검증한다.
+현재 CLI가 만든 새 `package.json`의 기본 typecheck 범위는 `@getpaseo/client@^0.4.0`, `@getpaseo/protocol@^0.6.1`이다. 반면 같은 upstream tag의 SDK package는 `0.7.0-beta.2`이며 더 넓은 `PaseoApi`를 선언한다. 이 저장소는 설치된 CLI·daemon과 정확히 맞추기 위해 두 package를 `0.7.0-beta.2`로 명시했다.
 
 반대로 현재 배포된 웹 문서는 `v0.7.0-beta.2` 이후 기능을 포함할 수 있다. 예를 들어 배포 문서의 일부 `navigation` 설명은 이 버전의 새 생성 선언에 없으므로 이 문서에서는 지원 기능으로 세지 않았다.
 

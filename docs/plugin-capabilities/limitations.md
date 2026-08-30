@@ -99,7 +99,7 @@
 
 현재 배포된 [Plugin reference](https://paseo.sh/docs/plugins/reference)는 설치된 `0.7.0-beta.2`보다 새 기능을 설명할 수 있다. 이 버전 tag 문서와 fresh scaffold에는 없는 field나 hook은 사용하지 않는다.
 
-이 저장소에 이미 있는 `plugins/*/paseo-plugin.d.ts`도 현재 CLI보다 오래되어 Composer pill, Modal, Toast type이 빠져 있다. 기존 선언 파일만 보고 기능이 없다고 결론 내리지 말고 fresh scaffold와 비교하되, 생성 파일을 손으로 임의 확장하지 않는다.
+이 저장소의 `plugins/*/paseo-plugin.d.ts`는 `0.7.0-beta.2` fresh scaffold와 동기화되어 있다. 이후 Paseo를 업데이트할 때도 기존 선언만 보고 기능 범위를 판단하거나 생성 파일을 손으로 임의 확장하지 말고, 새 CLI가 생성한 계약과 다시 비교한다.
 
 ## 관련 문서
 
