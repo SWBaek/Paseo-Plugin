@@ -22,6 +22,7 @@ body:
         - paseo-plugin
         - branch-garden
         - github-project-board
+        - tailscale-dashboard
         - 새 플러그인
     validations:
       required: true

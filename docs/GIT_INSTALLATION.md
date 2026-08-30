@@ -40,6 +40,7 @@ manifest의 기본 runtime ID로 설치합니다.
 ```powershell
 paseo plugin add SWBaek/Paseo-Plugin --path plugins/branch-garden
 paseo plugin add SWBaek/Paseo-Plugin --path plugins/github-project-board
+paseo plugin add SWBaek/Paseo-Plugin --path plugins/tailscale-dashboard
 paseo plugin ls
 ```
 

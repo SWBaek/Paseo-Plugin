@@ -14,6 +14,7 @@
 | [`paseo-plugin`](plugins/paseo-plugin/) | Public integration | 현재 Paseo CLI의 기본 구조를 따르는 전역 surface 예제이자 새 기여를 실험하는 기본 scaffold입니다. |
 | [`branch-garden`](plugins/branch-garden/) | Personal operations | 선택된 host의 활성 Git Workspace와 로컬 branch·worktree 상태를 읽기 전용으로 집계하는 전역 sidebar surface입니다. |
 | [`github-project-board`](plugins/github-project-board/) | Personal operations | 기존 GitHub CLI 인증으로 `SWBaek`의 GitHub Projects를 조회하고, 선택한 Project를 읽기 전용 칸반으로 보여주는 전역 sidebar surface입니다. |
+| [`tailscale-dashboard`](plugins/tailscale-dashboard/) | Personal operations | 선택된 host의 Tailscale Serve 구성을 읽기 전용으로 조사하고, 검증된 TailscaleOps 핵심 현황을 Paseo 안에 표시합니다. 전체 Dashboard는 필요할 때 시스템 브라우저로 엽니다. |
 
 Runtime ID의 기준은 디렉터리명이나 package 이름이 아니라 각 플러그인의 `paseo-plugin.json`입니다.
 
@@ -24,6 +25,7 @@ Runtime ID의 기준은 디렉터리명이나 package 이름이 아니라 각 �
 - Paseo Desktop/daemon/CLI `0.7.0-beta.1`
 - Node.js와 npm
 - `github-project-board`를 사용할 경우 인증된 [GitHub CLI](https://cli.github.com/)
+- `tailscale-dashboard`를 사용할 경우 로그인된 [Tailscale CLI](https://tailscale.com/docs/reference/tailscale-cli)와 HTTPS Serve로 공개된 TailscaleOps Dashboard
 
 루트에서 의존성을 설치하고 모든 workspace를 타입 검사합니다.
 
@@ -38,6 +40,7 @@ npm run typecheck
 ```powershell
 npm test --workspace branch-garden
 npm test --workspace github-project-board
+npm test --workspace tailscale-dashboard
 ```
 
 플러그인 하나만 검사할 때는 package 이름을 workspace 선택자로 사용합니다.
@@ -56,6 +59,7 @@ npm run typecheck --workspace branch-garden
 $repoRoot = (Resolve-Path .).Path
 paseo plugin install (Join-Path $repoRoot "plugins\branch-garden")
 paseo plugin install (Join-Path $repoRoot "plugins\github-project-board")
+paseo plugin install (Join-Path $repoRoot "plugins\tailscale-dashboard")
 paseo plugin ls
 ```
 
@@ -80,6 +84,7 @@ npm run check:git-source-imports
 npm run typecheck
 paseo plugin add SWBaek/Paseo-Plugin --path plugins/branch-garden
 paseo plugin add SWBaek/Paseo-Plugin --path plugins/github-project-board
+paseo plugin add SWBaek/Paseo-Plugin --path plugins/tailscale-dashboard
 paseo plugin status
 paseo plugin update --all
 ```
@@ -93,7 +98,8 @@ paseo plugin update --all
 ├── plugins/
 │   ├── paseo-plugin/
 │   ├── branch-garden/
-│   └── github-project-board/
+│   ├── github-project-board/
+│   └── tailscale-dashboard/
 ├── docs/
 │   ├── DESIGN.md
 │   └── GIT_INSTALLATION.md
