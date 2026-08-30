@@ -21,6 +21,7 @@ function setup() {
   const unsubscribe = vi.fn();
   const send = vi.fn(async () => {});
   const ref = vi.fn(() => ({ send }));
+  const requestConfirmation = vi.fn(async () => true);
   const list = vi.fn<() => Promise<AgentListResult>>(async () => ({
     requestId: "list-agents",
     entries: [],
@@ -51,6 +52,7 @@ function setup() {
     unsubscribe,
     send,
     ref,
+    requestConfirmation,
     list,
     registrations,
     removers,
@@ -72,7 +74,7 @@ describe("compact composer pill registration", () => {
       entries: [{ agent: { id: "agent-1", workspaceId: "workspace-1" } }],
     } as AgentListResult);
 
-    registerCompactPills(context.client, TestPill);
+    registerCompactPills(context.client, TestPill, context.requestConfirmation);
     await Promise.resolve();
 
     expect(context.addComposerPill).toHaveBeenCalledTimes(1);
@@ -89,7 +91,7 @@ describe("compact composer pill registration", () => {
       () => new Promise<AgentListResult>((resolve) => (resolveList = resolve)),
     );
 
-    registerCompactPills(context.client, TestPill);
+    registerCompactPills(context.client, TestPill, context.requestConfirmation);
     context.emit({ kind: "remove", agentId: "agent-1" } as AgentUpdate);
     resolveList({
       entries: [{ agent: { id: "agent-1", workspaceId: "workspace-1" } }],
@@ -101,7 +103,7 @@ describe("compact composer pill registration", () => {
 
   it("sends /compact to the pill's agent", async () => {
     const context = setup();
-    registerCompactPills(context.client, TestPill);
+    registerCompactPills(context.client, TestPill, context.requestConfirmation);
 
     context.emit(upsert("agent-1", "workspace-1"));
     expect(context.registrations[0]).toMatchObject({
@@ -113,14 +115,46 @@ describe("compact composer pill registration", () => {
     });
 
     await context.registrations[0]?.onPress();
+    expect(context.requestConfirmation).toHaveBeenCalledWith("agent-1");
     expect(context.ref).toHaveBeenCalledWith("agent-1");
     expect(context.send).toHaveBeenCalledWith(COMPACT_COMMAND);
+  });
+
+  it("does not send /compact when confirmation is declined", async () => {
+    const context = setup();
+    context.requestConfirmation.mockResolvedValueOnce(false);
+    registerCompactPills(context.client, TestPill, context.requestConfirmation);
+    context.emit(upsert("agent-1", "workspace-1"));
+
+    await context.registrations[0]?.onPress();
+
+    expect(context.requestConfirmation).toHaveBeenCalledWith("agent-1");
+    expect(context.ref).not.toHaveBeenCalled();
+    expect(context.send).not.toHaveBeenCalled();
+  });
+
+  it("shares an in-flight confirmation so duplicate presses send once", async () => {
+    const context = setup();
+    let confirm: (confirmed: boolean) => void = () => {};
+    context.requestConfirmation.mockImplementationOnce(
+      () => new Promise<boolean>((resolve) => (confirm = resolve)),
+    );
+    registerCompactPills(context.client, TestPill, context.requestConfirmation);
+    context.emit(upsert("agent-1", "workspace-1"));
+
+    const firstPress = context.registrations[0]?.onPress();
+    const secondPress = context.registrations[0]?.onPress();
+    expect(context.requestConfirmation).toHaveBeenCalledTimes(1);
+
+    confirm(true);
+    await Promise.all([firstPress, secondPress]);
+    expect(context.send).toHaveBeenCalledTimes(1);
   });
 
   it("lets send failures reach Paseo's pill error handling", async () => {
     const context = setup();
     context.send.mockRejectedValueOnce(new Error("send failed"));
-    registerCompactPills(context.client, TestPill);
+    registerCompactPills(context.client, TestPill, context.requestConfirmation);
     context.emit(upsert("agent-1", "workspace-1"));
 
     await expect(context.registrations[0]?.onPress()).rejects.toThrow("send failed");
@@ -128,7 +162,7 @@ describe("compact composer pill registration", () => {
 
   it("keeps one pill while an agent remains in the same workspace", () => {
     const context = setup();
-    registerCompactPills(context.client, TestPill);
+    registerCompactPills(context.client, TestPill, context.requestConfirmation);
 
     context.emit(upsert("agent-1", "workspace-1"));
     context.emit(upsert("agent-1", "workspace-1"));
@@ -139,7 +173,7 @@ describe("compact composer pill registration", () => {
 
   it("rebinds or removes a pill when agent placement changes", () => {
     const context = setup();
-    registerCompactPills(context.client, TestPill);
+    registerCompactPills(context.client, TestPill, context.requestConfirmation);
 
     context.emit(upsert("agent-1", "workspace-1"));
     context.emit(upsert("agent-1", "workspace-2"));
@@ -152,7 +186,7 @@ describe("compact composer pill registration", () => {
 
   it("does not keep pills for unplaced or archived agents", () => {
     const context = setup();
-    registerCompactPills(context.client, TestPill);
+    registerCompactPills(context.client, TestPill, context.requestConfirmation);
 
     context.emit(upsert("agent-1", "workspace-1"));
     context.emit(upsert("agent-1", undefined));
@@ -164,7 +198,11 @@ describe("compact composer pill registration", () => {
 
   it("unsubscribes and removes all pills during cleanup", () => {
     const context = setup();
-    const cleanup = registerCompactPills(context.client, TestPill);
+    const cleanup = registerCompactPills(
+      context.client,
+      TestPill,
+      context.requestConfirmation,
+    );
 
     context.emit(upsert("agent-1", "workspace-1"));
     context.emit(upsert("agent-2", "workspace-2"));
