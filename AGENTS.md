@@ -62,7 +62,7 @@ npm run typecheck --workspace paseo-plugin
   Role: 선택된 호스트의 Tailscale Serve 구성을 읽기 전용으로 조사해 검증된 TailscaleOps 핵심 현황을 네이티브 카드로 표시하고, 전체 Dashboard를 선택적으로 시스템 브라우저에서 여는 전역 사이드바 surface를 제공한다.
 - `plugins/composer-compact/`
   Audience: **Personal productivity**
-  Role: 각 Agent의 Composer track bar에 `Compact` pill을 추가하고 클릭 한 번으로 해당 Agent에 `/compact` 명령을 전송한다.
+  Role: 각 Agent의 Composer track bar에 `Compact` pill을 추가하고 확인 Modal에서 승인한 경우에만 해당 Agent에 `/compact` 명령을 전송한다.
 
 ## Per-Plugin Change Routing
 
