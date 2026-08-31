@@ -1,24 +1,25 @@
 # Paseo Plugin Capabilities
 
-이 문서는 **Paseo CLI와 daemon `0.7.0-beta.2`**에서 공개 Plugin API로 구현할 수 있는 기능과 그 경계를 정리한 버전 스냅샷이다.
+이 문서는 **Paseo CLI와 daemon `0.7.0`**에서 공개 Plugin API로 구현할 수 있는 기능과 그 경계를 정리한 버전 스냅샷이다.
 
-- 조사일: 2026-08-31 (Asia/Seoul)
-- 확인한 CLI: `paseo --version` → `0.7.0-beta.2`
-- 확인한 daemon: `paseo daemon status --json` → `daemonVersion: 0.7.0-beta.2`
+- 조사일: 2026-09-01 (Asia/Seoul)
+- 확인한 CLI: `paseo --version` → `0.7.0`
+- 확인한 daemon: `paseo daemon status --json` → `daemonVersion: 0.7.0`
 - 계약 기준: 현재 CLI로 새로 실행한 `paseo plugin init`이 생성한 `paseo-plugin.d.ts`
-- 문서 기준: Paseo upstream의 [`v0.7.0-beta.2` Plugin reference](https://github.com/getpaseo/paseo/blob/v0.7.0-beta.2/public-docs/plugins/reference.md)와 [`v0.7.0-beta.2` Plugin guide](https://github.com/getpaseo/paseo/blob/v0.7.0-beta.2/docs/plugins.md)
+- 문서 기준: Paseo upstream의 [`v0.7.0` Plugin reference](https://github.com/getpaseo/paseo/blob/v0.7.0/public-docs/plugins/reference.md)와 [`v0.7.0` Plugin guide](https://github.com/getpaseo/paseo/blob/v0.7.0/docs/plugins.md)
 
 Plugin API는 실험 단계다. 이 문서와 현재 배포된 공식 문서가 다르면, **대상 daemon과 같은 버전의 CLI가 새로 생성한 선언 파일**을 컴파일 가능 여부의 최종 기준으로 삼는다.
 
 ## 결론부터 보기
 
-질문에 든 세 가지 예시는 모두 다음 범위에서 지원된다.
+대표 기능은 다음 범위에서 지원된다.
 
-| 원하는 기능 | `0.7.0-beta.2` 지원 | 공개 API와 실제 범위 |
+| 원하는 기능 | `0.7.0` 지원 | 공개 API와 실제 범위 |
 | --- | --- | --- |
 | 좌측 Sidebar에 메뉴 추가 | 지원 | `addSurface`로 화면을 등록하고 `addSidebarItem`으로 연결한다. 여러 host에 같은 기여가 있으면 한 항목과 host picker로 합쳐진다. |
 | Modal 표시 | 지원 | 클라이언트 컴포넌트에서 `@getpaseo/plugin/react-native`의 controlled `Modal`을 사용한다. compact에서는 bottom sheet, 그 외에는 중앙 dialog로 표시된다. |
 | 채팅 입력창 위에 버튼 추가 | 제한적으로 지원 | `addClientSide`와 `addComposerPill`로 특정 workspace/agent의 Composer track bar에 pill 형태 버튼을 추가한다. 임의 위치·임의 chrome의 Composer 버튼을 삽입하는 API는 아니다. |
+| Plugin 화면에서 Agent·Workspace 열기 | 지원 | Surface와 workspace/agent panel의 optional `navigation`으로 선택 host의 Agent 또는 Workspace를 연다. 이전 client에서는 capability가 없으므로 관련 action을 숨긴다. |
 
 > 먼저 아이디어를 보고 싶다면 [실전 사용 예시](examples.md)에서 대시보드, 리뷰 도구, Composer 버튼, Issue 첨부, Timeline 카드 같은 결과물을 확인한다.
 
@@ -39,6 +40,7 @@ Plugin API는 실험 단계다. 이 문서와 현재 배포된 공식 문서가 
 | Icon | Paseo에 설치된 Lucide icon 렌더링 | `Icon` | Host 제공 UI |
 | App Theme | Settings → Appearance에 light/dark theme 추가 | `addTheme` | 공식 기여 지점 |
 | Paseo 조작 | Project 조회, Workspace·Agent 제어, Provider 조회, daemon config 조회·수정 | `usePaseo`, callback/handler의 `paseo` | Host SDK |
+| Host navigation | 선택 host의 Agent 또는 Workspace 열기 | Surface/panel props의 optional `navigation.openAgent`, `navigation.openWorkspace` | Host 제공 UI capability |
 | Plugin backend | 파일·프로세스·자격 증명·외부 API·로컬 DB 같은 daemon 측 동작 | `defineRpc`, `handle`, `useRpc` | 공식 backend 경로 |
 | Headless client | 화면을 열지 않아도 app 연결 동안 구독·상태·Composer pill 수명주기 관리 | `addClientSide` | 공식 기여 지점 |
 | 외부 URL | Plugin 컴포넌트 안에서 React Native API로 시스템 브라우저 호출 | `react-native`의 `Linking` 등 | 기여 UI 안에서 조합 |
@@ -72,17 +74,18 @@ Plugin API는 실험 단계다. 이 문서와 현재 배포된 공식 문서가 
 
 ## 버전 및 선언 파일 주의사항
 
-조사 시작 시 이 저장소에 추적 중인 네 플러그인의 `paseo-plugin.d.ts`는 서로 같은 이전 스냅샷이었고, 현재 `0.7.0-beta.2` CLI가 새로 생성하는 계약보다 오래됐다. 이후 네 선언 파일을 fresh scaffold와 동일하게 동기화해 다음 항목을 사용할 수 있게 했다.
+이 저장소에 추적 중인 다섯 플러그인의 `paseo-plugin.d.ts`는 `0.7.0` CLI의 fresh scaffold와 동일한 공개 계약으로 동기화했다. 정식판의 host UI, Composer pill과 host navigation 계약을 포함한다.
 
 - `@getpaseo/plugin/react-native`의 `Modal`, `Icon`, `useToast`
 - `PluginClientContext`와 `PluginComposerPillContribution`
 - `PluginContext.addClientSide`
+- `PluginSurfaceProps`, `PluginWorkspacePanelProps`, `PluginAgentPanelProps`의 optional `navigation`
 
-네 workspace의 `@getpaseo/client`와 `@getpaseo/protocol` 개발 의존성도 `0.7.0-beta.2`로 고정했다. 앞으로 Paseo 버전을 올릴 때도 ambient type을 임의로 덧붙이지 말고, 현재 CLI가 생성한 새 scaffold와 기존 플러그인을 대조해 생성 계약을 함께 갱신한다.
+다섯 workspace의 `@getpaseo/client`와 `@getpaseo/protocol` 개발 의존성도 `0.7.0`으로 고정했다. 앞으로 Paseo 버전을 올릴 때도 ambient type을 임의로 덧붙이지 말고, 현재 CLI가 생성한 새 scaffold와 기존 플러그인을 대조해 생성 계약을 함께 갱신한다.
 
-현재 CLI가 만든 새 `package.json`의 기본 typecheck 범위는 `@getpaseo/client@^0.4.0`, `@getpaseo/protocol@^0.6.1`이다. 반면 같은 upstream tag의 SDK package는 `0.7.0-beta.2`이며 더 넓은 `PaseoApi`를 선언한다. 이 저장소는 설치된 CLI·daemon과 정확히 맞추기 위해 두 package를 `0.7.0-beta.2`로 명시했다.
+현재 CLI가 만든 새 `package.json`의 기본 typecheck 범위는 `@getpaseo/client@^0.4.0`, `@getpaseo/protocol@^0.6.1`이다. 반면 같은 upstream tag의 SDK package는 `0.7.0`이며 더 넓은 `PaseoApi`를 선언한다. 이 저장소는 설치된 CLI·daemon과 정확히 맞추기 위해 두 package를 `0.7.0`으로 명시했다.
 
-반대로 현재 배포된 웹 문서는 `v0.7.0-beta.2` 이후 기능을 포함할 수 있다. 예를 들어 배포 문서의 일부 `navigation` 설명은 이 버전의 새 생성 선언에 없으므로 이 문서에서는 지원 기능으로 세지 않았다.
+`v0.7.0` tag의 Plugin reference에는 “general host navigation API가 없다”는 이전 문장이 남아 있지만, 같은 문서의 surface/panel 계약과 fresh scaffold는 제한된 `navigation` capability를 명시한다. 따라서 이를 임의 native route용 범용 API가 없다는 뜻으로 해석하고, 공개된 `openAgent`와 `openWorkspace`만 지원 기능으로 센다.
 
 ## 다시 조사할 때
 
@@ -96,8 +99,8 @@ Paseo를 업데이트한 뒤 다음 순서로 이 문서를 갱신한다.
 
 ## 참고 자료
 
-- [Paseo `v0.7.0-beta.2` Plugin reference](https://github.com/getpaseo/paseo/blob/v0.7.0-beta.2/public-docs/plugins/reference.md)
-- [Paseo `v0.7.0-beta.2` Plugin guide](https://github.com/getpaseo/paseo/blob/v0.7.0-beta.2/docs/plugins.md)
+- [Paseo `v0.7.0` Plugin reference](https://github.com/getpaseo/paseo/blob/v0.7.0/public-docs/plugins/reference.md)
+- [Paseo `v0.7.0` Plugin guide](https://github.com/getpaseo/paseo/blob/v0.7.0/docs/plugins.md)
 - [현재 배포된 Plugin quickstart](https://paseo.sh/docs/plugins)
 - [현재 배포된 Plugin reference](https://paseo.sh/docs/plugins/reference)
 - [Paseo TypeScript SDK reference](https://paseo.sh/docs/sdk/reference)

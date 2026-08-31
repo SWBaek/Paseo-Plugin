@@ -2,7 +2,7 @@
 
 여러 개의 독립적인 로컬 [Paseo](https://paseo.sh) 플러그인을 함께 개발하는 npm workspace입니다. 각 `plugins/*` 디렉터리는 자체 manifest와 진입점을 가진 별도의 설치 단위이며, 플러그인끼리 런타임 코드를 공유하지 않습니다.
 
-> **기준 Paseo 버전: `0.7.0-beta.2`** — Plugin API는 실험 단계입니다. 다른 Paseo 버전에서 개발하거나 설치할 때는 현재 공식 문서와 해당 CLI가 생성하는 `paseo-plugin.d.ts`를 먼저 대조하세요. 현재 버전의 전체 확장 지점은 [Paseo Plugin Capabilities](docs/plugin-capabilities/README.md)에 정리되어 있습니다.
+> **기준 Paseo 버전: `0.7.0`** — Plugin API는 실험 단계입니다. 다른 Paseo 버전에서 개발하거나 설치할 때는 현재 공식 문서와 해당 CLI가 생성하는 `paseo-plugin.d.ts`를 먼저 대조하세요. 현재 버전의 전체 확장 지점은 [Paseo Plugin Capabilities](docs/plugin-capabilities/README.md)에 정리되어 있습니다.
 
 > [!WARNING]
 > Paseo 플러그인은 신뢰된 비격리 코드입니다. 서버 측 코드는 daemon이 실행되는 컴퓨터의 파일, 프로세스, 자격 증명과 네트워크에 접근할 수 있고, 클라이언트 코드는 Paseo 앱 안에서 실행됩니다. 검토하고 신뢰하는 소스만 설치하세요.
@@ -23,7 +23,7 @@ Runtime ID의 기준은 디렉터리명이나 package 이름이 아니라 각 �
 
 필요한 도구:
 
-- Paseo Desktop/daemon/CLI `0.7.0-beta.2`
+- Paseo Desktop/daemon/CLI `0.7.0`
 - Node.js와 npm
 - `github-project-board`를 사용할 경우 인증된 [GitHub CLI](https://cli.github.com/)
 - `tailscale-dashboard`를 사용할 경우 로그인된 [Tailscale CLI](https://tailscale.com/docs/reference/tailscale-cli)와 HTTPS Serve로 공개된 TailscaleOps Dashboard

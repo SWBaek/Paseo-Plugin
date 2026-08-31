@@ -1,6 +1,6 @@
 # UI 기여 지점
 
-이 문서는 Paseo `0.7.0-beta.2`가 Plugin에 열어 둔 UI 위치를 다룬다. Plugin UI는 React Native component이며 desktop, browser, iOS, Android에서 같은 기여 계약을 사용한다.
+이 문서는 Paseo `0.7.0`이 Plugin에 열어 둔 UI 위치를 다룬다. Plugin UI는 React Native component이며 desktop, browser, iOS, Android에서 같은 기여 계약을 사용한다.
 
 ## 공통 렌더링 계약
 
@@ -12,6 +12,8 @@ Surface, panel, Composer pill, timeline renderer는 공통으로 다음 host 정
 | `host` | 선택된 daemon의 `id`, 표시용 `label` |
 | `layout.compact` | mobile 또는 좁은 창인지 여부 |
 | `layout.platform` | `"ios"`, `"android"`, `"web"` 중 하나 |
+
+Surface와 workspace/agent panel에는 선택 host의 Agent 또는 Workspace를 여는 optional `navigation`도 주입된다. Composer pill과 timeline renderer에는 이 capability가 없다.
 
 모든 `Text`는 `theme.colors.foreground` 또는 `foregroundMuted`를 사용하고, root 배경은 `surface0`에서 가져온다. 버튼·카드·상태 표현도 hardcoded color 대신 theme token을 사용한다. `layout.compact`에 따라 padding과 stacking을 조정한다.
 
@@ -42,7 +44,29 @@ Sidebar contribution 필드는 다음 네 개뿐이다.
 
 한 Plugin이 여러 surface와 Sidebar 항목을 등록할 수 있다. 다만 nested menu, section 지정, 순서나 badge를 제어하는 필드는 없다. 같은 contribution이 여러 host에 설치되면 Paseo가 하나의 Sidebar 항목과 host picker로 합친다.
 
-Surface component는 `PluginSurfaceProps`의 `theme`, `host`, `layout`만 받는다. `0.7.0-beta.2` 생성 타입에는 임의 Paseo route로 이동시키는 `navigation` prop이 없다.
+Surface component는 `PluginSurfaceProps`의 `theme`, `host`, `layout`, optional `navigation`을 받는다. `navigation`은 다음 두 메서드만 제공한다.
+
+| 메서드 | 동작 |
+| --- | --- |
+| `openAgent({ agentId })` | 선택된 host에서 해당 Agent를 연다. |
+| `openWorkspace({ workspaceId })` | 선택된 host에서 해당 Workspace를 연다. |
+
+```tsx
+function AgentShortcut({ agentId, navigation, theme }: PluginSurfaceProps & { agentId: string }) {
+  if (!navigation) return null;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => navigation.openAgent({ agentId })}
+    >
+      <Text style={{ color: theme.colors.foreground }}>Open agent</Text>
+    </Pressable>
+  );
+}
+```
+
+`navigation`은 이전 Paseo client에서 `undefined`일 수 있으므로 그 기능에 의존하는 action을 표시하기 전에 확인한다. Paseo가 선택 host와 route 구성을 소유하며, Plugin은 다른 host를 지정하거나 임의 native route를 열 수 없다.
 
 ## 2. Workspace와 Agent Panel
 
@@ -72,6 +96,8 @@ plugin.addWorkspacePanel({
 | `context` | 예 | `"workspace"` 또는 `"agent"` |
 | `locations` | 아니요 | `"workspace"`, `"explorer"` 또는 둘 다. 생략하면 workspace만 사용 |
 | `Component` | 예 | context와 맞는 React Native component |
+
+Workspace와 Agent panel도 공통 `theme`, `host`, `layout` 외에 Surface와 같은 optional `navigation`을 받는다. Panel의 `workspaceId`와 `agentId` 또는 hook으로 읽은 다른 대상 ID를 `openWorkspace`와 `openAgent`에 전달할 수 있다.
 
 Panel component는 `useWorkspace(workspaceId, selector)`와 `useAgent(agentId, selector)`로 Paseo app이 이미 가진 normalized snapshot을 동기적으로 읽는다. selector는 필수이며, 반환값은 shallow equality로 비교된다. record가 없으면 hook은 `null`을 반환한다.
 
@@ -279,4 +305,4 @@ Plugin, surface, Sidebar item, panel, Command Center item, attachment source ID�
 - [전체 기능표](README.md)
 - [Backend와 Paseo SDK](backend-and-sdk.md)
 - [지원 경계](limitations.md)
-- [`v0.7.0-beta.2` 공식 Plugin reference](https://github.com/getpaseo/paseo/blob/v0.7.0-beta.2/public-docs/plugins/reference.md)
+- [`v0.7.0` 공식 Plugin reference](https://github.com/getpaseo/paseo/blob/v0.7.0/public-docs/plugins/reference.md)

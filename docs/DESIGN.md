@@ -2,7 +2,7 @@
 
 이 문서는 `plugins/*`의 Paseo 클라이언트 UI에 적용하는 저장소 공통 디자인 규칙이다. Paseo 본체의 [Design](https://github.com/getpaseo/paseo/blob/main/docs/design.md)을 플러그인 공개 계약에 맞게 번안했으며, 원문을 그대로 복제하거나 자동 동기화하지 않는다.
 
-마지막 대조일: 2026-08-31
+마지막 대조일: 2026-09-01
 
 ## Rule precedence
 
@@ -31,7 +31,7 @@ Paseo는 플러그인 surface의 route, 화면 header, 닫기 동작, host picke
 - 클라이언트에서는 현재 생성 타입과 Plugin reference가 허용한 runtime module만 가져온다.
 - 같은 플러그인 안에서 동일한 의미의 UI가 세 곳 이상 쓰이면 공통 컴포넌트로 만든다. 서로 독립적으로 설치되는 플러그인 사이에는 런타임 결합을 만들지 않는다.
 - 기여 icon은 현재 플러그인 계약이 요구하는 Lucide 이름을 사용한다.
-- 현재 기준인 Paseo `0.7.0-beta.2`의 surface 내부 icon은 `@getpaseo/plugin`이 제공하는 `Icon`을 `*.client.tsx`에서 사용한다. `lucide-react-native`나 `react-native-svg`를 직접 가져오지 않는다.
+- 현재 기준인 Paseo `0.7.0`의 surface 내부 icon은 `@getpaseo/plugin`이 제공하는 `Icon`을 `*.client.tsx`에서 사용한다. `lucide-react-native`나 `react-native-svg`를 직접 가져오지 않는다.
 - 내부 icon은 action이나 상태를 더 빨리 이해하게 하는 경우에만 사용하고, 텍스트 label이나 접근성 설명을 대체하지 않는다.
 
 ## Theme and color
@@ -101,6 +101,8 @@ Compact 화면을 먼저 설계하고 wide 화면은 같은 정보와 행동에 
 
 ## Actions and interaction
 
+- Surface와 workspace/agent panel에서 Agent 또는 Workspace를 열 때는 Paseo가 주입한 optional `navigation`을 사용한다. 임의 route를 조립하거나 내부 router를 가져오지 않는다.
+- `navigation`이 없는 이전 client에서는 그 capability에 의존하는 action을 숨긴다. 선택 host가 대상을 소유하므로 다른 host로 우회하거나 fallback하지 않는다.
 - 한 surface에서 accent로 채운 primary action은 최대 하나다. 대부분의 읽기 전용 화면에는 없어도 된다.
 - Secondary action은 foreground와 낮은 강도의 surface 또는 outline으로 조용하게 표현한다.
 - 파괴적 행동은 사용자가 의도를 밝힌 뒤에만 danger 색과 최종 확인을 보여준다. 공개 확인 primitive가 없으면 본체 내부 API를 가져오지 말고 플러그인 안에 명시적인 확인 단계를 설계한다.
