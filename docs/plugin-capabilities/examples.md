@@ -1,6 +1,6 @@
 # 실전 사용 예시
 
-이 문서는 Paseo `0.7.0-beta.2` Plugin API로 **실제로 무엇을 만들 수 있는지** 빠르게 보여주는 아이디어 모음이다. 예제는 핵심 계약만 보여주며, 실제 Plugin에는 import, loading·empty·error 상태, 접근성 label과 cleanup을 함께 추가한다.
+이 문서는 Paseo `0.7.0` Plugin API로 **실제로 무엇을 만들 수 있는지** 빠르게 보여주는 아이디어 모음이다. 예제는 핵심 계약만 보여주며, 실제 Plugin에는 import, loading·empty·error 상태, 접근성 label과 cleanup을 함께 추가한다.
 
 ## 30초 아이디어 지도
 
@@ -15,6 +15,7 @@
 | Tool call 결과를 읽기 좋은 카드로 표시 | Agent timeline | Timeline transformer + renderer |
 | 삭제·배포 전 확인창 | Plugin 화면 위 | Modal + Toast + Icon |
 | PR 전용 Workspace와 Agent 생성 | Plugin 버튼 | `usePaseo` SDK |
+| 검색 결과에서 기존 Agent·Workspace 열기 | Surface 또는 Panel 버튼 | optional host `navigation` |
 | 사내 브랜드 또는 눈이 편한 색상 | Settings → Appearance | Theme contribution |
 | Plugin 자체 설정 화면 | Sidebar/Panel 내부 | Surface + Modal + daemon-side file/DB |
 
@@ -384,7 +385,28 @@ function AgentStatus({ agentId, theme }: { agentId: string; theme: PluginTheme }
 
 `useWorkspace`도 같은 방식으로 `name`, `status`, `diffStat` 등 필요한 field만 선택한다. 현재 문맥을 알아내기 위한 별도 RPC는 만들 필요가 없다.
 
-## 12. 외부 Dashboard 열기
+## 12. 선택 Host의 Agent·Workspace 열기
+
+**만들 수 있는 것:** 검색 결과, 운영 현황이나 관계 그래프에서 기존 Agent 또는 Workspace를 Paseo 화면으로 바로 열기.
+
+```tsx
+function AgentShortcut({ agentId, navigation, theme }: PluginSurfaceProps & { agentId: string }) {
+  if (!navigation) return null;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => navigation.openAgent({ agentId })}
+    >
+      <Text style={{ color: theme.colors.foreground }}>Open agent</Text>
+    </Pressable>
+  );
+}
+```
+
+Surface와 workspace/agent panel의 `navigation`은 `openAgent({ agentId })`와 `openWorkspace({ workspaceId })`를 제공한다. 렌더링 중인 host에서만 대상을 열며, 이전 Paseo client에서는 `undefined`일 수 있으므로 관련 action을 표시하기 전에 확인한다. 임의 native route를 열거나 다른 host를 지정하는 API는 아니다.
+
+## 13. 외부 Dashboard 열기
 
 **만들 수 있는 것:** Plugin은 핵심 요약만 보여 주고 Grafana, GitHub, TailscaleOps 같은 전체 dashboard는 시스템 browser로 열기.
 
@@ -399,7 +421,7 @@ function AgentStatus({ agentId, theme }: { agentId: string; theme: PluginTheme }
 
 이 방식은 외부 URL을 여는 것이며 Paseo 내부 native route로 이동하는 API는 아니다.
 
-## 13. Timer·Watcher·Subscription 정리
+## 14. Timer·Watcher·Subscription 정리
 
 **만들 수 있는 것:** 주기적 cache refresh, filesystem watcher, socket subscription처럼 Plugin이 실행되는 동안 유지되는 기능.
 

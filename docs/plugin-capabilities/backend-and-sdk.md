@@ -57,7 +57,7 @@ Plugin은 connection 생성, reconnect, close를 소유하지 않는다. 각 API
 
 ## `PaseoApi`로 가능한 동작
 
-`v0.7.0-beta.2` SDK reference의 Plugin용 API 범위는 `projects`, `workspaces`, `agents`, `providers`, `config`다.
+`v0.7.0` SDK reference의 Plugin용 API 범위는 `projects`, `workspaces`, `agents`, `providers`, `config`다.
 
 ### Projects
 
@@ -102,7 +102,7 @@ Agent 생성 옵션에는 provider/model, mode, thinking option, feature value, 
 
 `config.patch`는 모든 client와 이후 Agent에 영향을 주는 관리 기능이다. 개별 Plugin 설정 저장소처럼 사용하지 않는다.
 
-Plugin용 `PaseoApi`에는 client connection lifecycle method가 없다. 임의 Paseo native route를 여는 general navigation API도 이 버전의 생성 계약에는 없다.
+Plugin용 `PaseoApi`에는 client connection lifecycle method가 없고 UI route도 소유하지 않는다. 대신 Surface와 workspace/agent panel props의 optional `navigation`이 선택 host의 Agent와 Workspace를 여는 `openAgent`와 `openWorkspace`만 제공한다. Command Center와 headless client는 같은 Plugin의 `openSurface`와 `openPanel`을 사용할 수 있다. 그 밖의 임의 native route를 여는 범용 navigation API는 없다.
 
 ## Plugin RPC
 
@@ -171,6 +171,7 @@ Cleanup은 sync 또는 async다. Reload, disable, remove, disconnect, daemon shu
 - 선택 host가 offline이어도 다른 설치로 fallback하지 않는다.
 - Attachment source는 합쳐지지 않고 Composer host에 종속된다.
 - Workspace panel과 Command Center item은 active host와 exact cached context에 종속된다.
+- Surface와 panel의 `navigation.openAgent`·`openWorkspace`도 렌더링 host에 고정되며, 대상이 다른 host에만 있어도 자동 fallback하지 않는다.
 
 ## Logging과 진단
 
@@ -182,7 +183,7 @@ paseo plugin logs <runtime-id>
 paseo plugin logs <runtime-id> --json
 ```
 
-`0.7.0-beta.2`는 Plugin별 최근 log를 최대 500개, 256 KiB까지 memory에 유지하고 한 line을 16 KiB로 제한한다. Reload·disable·실패 뒤에도 tail이 남지만 Plugin remove는 지우고 daemon restart는 새 tail을 시작한다. Credential과 token은 log에 남기지 않는다.
+`0.7.0`은 Plugin별 최근 log를 최대 500개, 256 KiB까지 memory에 유지하고 한 line을 16 KiB로 제한한다. Reload·disable·실패 뒤에도 tail이 남지만 Plugin remove는 지우고 daemon restart는 새 tail을 시작한다. Credential과 token은 log에 남기지 않는다.
 
 ## 전용 Storage의 부재
 
@@ -198,4 +199,4 @@ paseo plugin logs <runtime-id> --json
 - [전체 기능표](README.md)
 - [UI 기여 지점](ui-contributions.md)
 - [지원 경계](limitations.md)
-- [`v0.7.0-beta.2` SDK API reference](https://github.com/getpaseo/paseo/blob/v0.7.0-beta.2/public-docs/sdk/reference.md)
+- [`v0.7.0` SDK API reference](https://github.com/getpaseo/paseo/blob/v0.7.0/public-docs/sdk/reference.md)

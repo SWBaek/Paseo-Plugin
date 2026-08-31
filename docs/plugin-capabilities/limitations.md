@@ -1,6 +1,6 @@
 # 지원 경계
 
-이 문서는 “화면에서 보이게 만들 수 있다”와 “Paseo가 그 위치를 정식 Plugin slot으로 공개했다”를 구분한다. 기준은 Paseo `0.7.0-beta.2` CLI가 새로 생성한 공개 type contract다.
+이 문서는 “화면에서 보이게 만들 수 있다”와 “Paseo가 그 위치를 정식 Plugin slot으로 공개했다”를 구분한다. 기준은 Paseo `0.7.0` CLI가 새로 생성한 공개 type contract다.
 
 ## 판정 기준
 
@@ -39,7 +39,8 @@
 | Plugin 전용 Settings page 삽입 | 공개 API 없음 | Plugin surface/panel 안에 자체 설정 UI 작성 |
 | App top bar/header button 추가 | 공개 API 없음 | Paseo가 header를 소유한다. Command Center나 Composer pill 사용 |
 | 임의 context menu 항목 추가 | 공개 API 없음 | Surface/panel 안의 자체 menu 또는 button 사용 |
-| Paseo native route로 임의 navigation | 공개 API 없음 | 같은 Plugin의 `openSurface`와 `openPanel`만 사용 |
+| 선택 host의 Agent 또는 Workspace 열기 | 직접 지원 | Surface/panel의 optional `navigation.openAgent` 또는 `navigation.openWorkspace`; capability가 없으면 관련 action을 숨김 |
+| 그 밖의 Paseo native route로 임의 navigation | 공개 API 없음 | 같은 Plugin의 `openSurface`·`openPanel` 또는 공개된 Agent/Workspace navigation만 사용 |
 | 외부 웹페이지 열기 | 조합 가능 | Plugin component에서 React Native `Linking` 사용; native Paseo route 이동과는 다름 |
 | Lucide icon 사용 | 직접 지원 | host `Icon` 또는 contribution의 icon 이름 사용 |
 | DOM 기반 UI/웹 전용 component | 공개 API 없음 | React Native primitive로 구현하고 web global은 platform guard 뒤에서만 사용 |
@@ -97,9 +98,11 @@
 
 ## Version drift 주의
 
-현재 배포된 [Plugin reference](https://paseo.sh/docs/plugins/reference)는 설치된 `0.7.0-beta.2`보다 새 기능을 설명할 수 있다. 이 버전 tag 문서와 fresh scaffold에는 없는 field나 hook은 사용하지 않는다.
+현재 배포된 [Plugin reference](https://paseo.sh/docs/plugins/reference)는 설치된 Paseo와 다른 시점의 기능을 설명할 수 있다. 대상 버전의 tag 문서와 fresh scaffold에 없는 field나 hook은 사용하지 않는다.
 
-이 저장소의 `plugins/*/paseo-plugin.d.ts`는 `0.7.0-beta.2` fresh scaffold와 동기화되어 있다. 이후 Paseo를 업데이트할 때도 기존 선언만 보고 기능 범위를 판단하거나 생성 파일을 손으로 임의 확장하지 말고, 새 CLI가 생성한 계약과 다시 비교한다.
+이 저장소의 `plugins/*/paseo-plugin.d.ts`는 `0.7.0` fresh scaffold와 동기화되어 있다. 이후 Paseo를 업데이트할 때도 기존 선언만 보고 기능 범위를 판단하거나 생성 파일을 손으로 임의 확장하지 말고, 새 CLI가 생성한 계약과 다시 비교한다.
+
+`v0.7.0` tag의 Plugin reference에는 general host navigation이 없다는 이전 문장이 남아 있다. 같은 문서의 Surface 계약, Plugin guide와 fresh scaffold를 함께 보면 이는 임의 route용 범용 API가 없다는 제한이며, `openAgent`와 `openWorkspace`는 공개된 예외다.
 
 ## 관련 문서
 
@@ -107,4 +110,4 @@
 - [전체 기능표](README.md)
 - [UI 기여 지점](ui-contributions.md)
 - [Backend와 Paseo SDK](backend-and-sdk.md)
-- [`v0.7.0-beta.2` Plugin reference](https://github.com/getpaseo/paseo/blob/v0.7.0-beta.2/public-docs/plugins/reference.md)
+- [`v0.7.0` Plugin reference](https://github.com/getpaseo/paseo/blob/v0.7.0/public-docs/plugins/reference.md)

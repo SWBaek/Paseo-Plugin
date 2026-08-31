@@ -1,6 +1,6 @@
 # Git source 설치와 업데이트
 
-이 문서는 Paseo `0.7.0-beta.2`에서 이 monorepo의 개별 플러그인을 Git source로 배포하는 절차를 설명합니다. Git source는 다른 daemon이나 PC에 배포하고 추적 ref를 업데이트하는 운영 경로입니다. 같은 컴퓨터에서 소스를 편집하는 동안에는 directory source 설치와 `plugin reload`를 사용하세요.
+이 문서는 Paseo `0.7.0`에서 이 monorepo의 개별 플러그인을 Git source로 배포하는 절차를 설명합니다. Git source는 다른 daemon이나 PC에 배포하고 추적 ref를 업데이트하는 운영 경로입니다. 같은 컴퓨터에서 소스를 편집하는 동안에는 directory source 설치와 `plugin reload`를 사용하세요.
 
 > [!WARNING]
 > Paseo 플러그인은 신뢰된 비격리 코드입니다. 설치 전에 source와 대상 daemon을 확인하고, 전역 플러그인 switch가 꺼져 있으면 사용자의 명시적 승인 없이 켜지 마세요.
