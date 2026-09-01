@@ -24,6 +24,7 @@ body:
         - github-project-board
         - tailscale-dashboard
         - composer-compact
+        - composer-skills
         - 새 플러그인
     validations:
       required: true

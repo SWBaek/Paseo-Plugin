@@ -42,6 +42,7 @@ paseo plugin add SWBaek/Paseo-Plugin --path plugins/branch-garden
 paseo plugin add SWBaek/Paseo-Plugin --path plugins/github-project-board
 paseo plugin add SWBaek/Paseo-Plugin --path plugins/tailscale-dashboard
 paseo plugin add SWBaek/Paseo-Plugin --path plugins/composer-compact
+paseo plugin add SWBaek/Paseo-Plugin --path plugins/composer-skills
 paseo plugin ls
 ```
 
