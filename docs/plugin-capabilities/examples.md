@@ -11,6 +11,7 @@
 | 현재 Agent 리뷰 체크리스트 | Agent 탭 | Agent panel + `useAgent` |
 | “리뷰 새로고침” 빠른 명령 | Ctrl+K/⌘K | Command Center + RPC + Panel |
 | 채팅창 위 “리뷰 열기” 버튼 | Composer track bar | Headless client + Composer pill |
+| 현재 세션 Skill 고르기 | Composer track bar | Headless client + Composer pill + Modal + `agent.commands()` |
 | GitHub Issue·Notion 문서 첨부 | Composer 첨부 메뉴 | Attachment source + search RPC |
 | Tool call 결과를 읽기 좋은 카드로 표시 | Agent timeline | Timeline transformer + renderer |
 | 삭제·배포 전 확인창 | Plugin 화면 위 | Modal + Toast + Icon |
@@ -158,6 +159,8 @@ plugin.addClientSide(contributeClient);
 Paseo가 버튼 외형, pending/error 상태와 위치를 소유한다. Plugin은 언제 pill을 만들지, 안에 무엇을 보여줄지, 눌렀을 때 무엇을 할지만 정한다.
 
 이 저장소의 [`composer-compact`](../../plugins/composer-compact/)는 이 패턴을 실제로 사용한다. `Compact` pill을 누르면 확인 Modal을 열고, 사용자가 `Compact`를 선택한 경우에만 현재 Agent에 `/compact`를 전송한다. 취소, backdrop, Escape, back action, compact sheet dismiss와 Plugin unload는 모두 명령을 보내지 않고 종료된다.
+
+[`composer-skills`](../../plugins/composer-skills/)도 같은 Composer pill과 Modal 자리를 쓴다. `Skills` pill은 현재 세션의 `agent.commands()` 결과를 보여 준다. Provider가 `kind === "skill"`을 구분하면 그 항목만 쓰고, Grok처럼 모두 `command`로 내려주면 compact/hooks 같은 세션 제어 명령만 제외한다. 확인 시 최종 문장을 클립보드에 복사한 뒤 Toast로 붙여넣기를 안내한다. `send()`로 자동 전송하지 않으며, Paseo `0.7.0`에는 Composer draft를 직접 수정하는 공개 API가 없으므로 입력창에 넣는 동작은 host가 그 API를 지원할 때 업데이트한다.
 
 ## 5. 확인 Modal과 결과 Toast
 

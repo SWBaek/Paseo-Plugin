@@ -74,14 +74,14 @@ Plugin API는 실험 단계다. 이 문서와 현재 배포된 공식 문서가 
 
 ## 버전 및 선언 파일 주의사항
 
-이 저장소에 추적 중인 다섯 플러그인의 `paseo-plugin.d.ts`는 `0.7.0` CLI의 fresh scaffold와 동일한 공개 계약으로 동기화했다. 정식판의 host UI, Composer pill과 host navigation 계약을 포함한다.
+이 저장소에 추적 중인 플러그인의 `paseo-plugin.d.ts`는 `0.7.0` CLI의 fresh scaffold와 동일한 공개 계약으로 동기화했다. 정식판의 host UI, Composer pill과 host navigation 계약을 포함한다.
 
 - `@getpaseo/plugin/react-native`의 `Modal`, `Icon`, `useToast`
 - `PluginClientContext`와 `PluginComposerPillContribution`
 - `PluginContext.addClientSide`
 - `PluginSurfaceProps`, `PluginWorkspacePanelProps`, `PluginAgentPanelProps`의 optional `navigation`
 
-다섯 workspace의 `@getpaseo/client`와 `@getpaseo/protocol` 개발 의존성도 `0.7.0`으로 고정했다. 앞으로 Paseo 버전을 올릴 때도 ambient type을 임의로 덧붙이지 말고, 현재 CLI가 생성한 새 scaffold와 기존 플러그인을 대조해 생성 계약을 함께 갱신한다.
+각 workspace의 `@getpaseo/client`와 `@getpaseo/protocol` 개발 의존성도 `0.7.0`으로 고정했다. 앞으로 Paseo 버전을 올릴 때도 ambient type을 임의로 덧붙이지 말고, 현재 CLI가 생성한 새 scaffold와 기존 플러그인을 대조해 생성 계약을 함께 갱신한다.
 
 현재 CLI가 만든 새 `package.json`의 기본 typecheck 범위는 `@getpaseo/client@^0.4.0`, `@getpaseo/protocol@^0.6.1`이다. 반면 같은 upstream tag의 SDK package는 `0.7.0`이며 더 넓은 `PaseoApi`를 선언한다. 이 저장소는 설치된 CLI·daemon과 정확히 맞추기 위해 두 package를 `0.7.0`으로 명시했다.
 

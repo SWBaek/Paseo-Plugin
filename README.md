@@ -16,6 +16,7 @@
 | [`github-project-board`](plugins/github-project-board/) | Personal operations | 기존 GitHub CLI 인증으로 `SWBaek`의 GitHub Projects를 조회하고, 선택한 Project를 읽기 전용 칸반으로 보여주는 전역 sidebar surface입니다. |
 | [`tailscale-dashboard`](plugins/tailscale-dashboard/) | Personal operations | 선택된 host의 Tailscale Serve 구성을 읽기 전용으로 조사하고, 검증된 TailscaleOps 핵심 현황을 Paseo 안에 표시합니다. 전체 Dashboard는 필요할 때 시스템 브라우저로 엽니다. |
 | [`composer-compact`](plugins/composer-compact/) | Personal productivity | Agent의 Composer track bar에 `Compact` pill을 추가하고 확인 Modal에서 승인한 경우에만 해당 Agent에 `/compact`를 전송합니다. |
+| [`composer-skills`](plugins/composer-skills/) | Personal productivity | Agent의 Composer track bar에 `Skills` pill을 추가하고, 현재 세션 Skill을 Modal에서 고른 뒤 최종 문장을 클립보드에 복사합니다. 자동 전송과 Composer 직접 입력은 하지 않습니다. |
 
 Runtime ID의 기준은 디렉터리명이나 package 이름이 아니라 각 플러그인의 `paseo-plugin.json`입니다.
 
@@ -43,6 +44,7 @@ npm test --workspace branch-garden
 npm test --workspace github-project-board
 npm test --workspace tailscale-dashboard
 npm test --workspace composer-compact
+npm test --workspace composer-skills
 ```
 
 플러그인 하나만 검사할 때는 package 이름을 workspace 선택자로 사용합니다.
@@ -63,6 +65,7 @@ paseo plugin install (Join-Path $repoRoot "plugins\branch-garden")
 paseo plugin install (Join-Path $repoRoot "plugins\github-project-board")
 paseo plugin install (Join-Path $repoRoot "plugins\tailscale-dashboard")
 paseo plugin install (Join-Path $repoRoot "plugins\composer-compact")
+paseo plugin install (Join-Path $repoRoot "plugins\composer-skills")
 paseo plugin ls
 ```
 
@@ -89,6 +92,7 @@ paseo plugin add SWBaek/Paseo-Plugin --path plugins/branch-garden
 paseo plugin add SWBaek/Paseo-Plugin --path plugins/github-project-board
 paseo plugin add SWBaek/Paseo-Plugin --path plugins/tailscale-dashboard
 paseo plugin add SWBaek/Paseo-Plugin --path plugins/composer-compact
+paseo plugin add SWBaek/Paseo-Plugin --path plugins/composer-skills
 paseo plugin status
 paseo plugin update --all
 ```
@@ -104,7 +108,8 @@ paseo plugin update --all
 │   ├── branch-garden/
 │   ├── github-project-board/
 │   ├── tailscale-dashboard/
-│   └── composer-compact/
+│   ├── composer-compact/
+│   └── composer-skills/
 ├── docs/
 │   ├── DESIGN.md
 │   ├── GIT_INSTALLATION.md
