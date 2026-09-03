@@ -17,7 +17,7 @@
 ## Design Rules
 
 - 플러그인의 클라이언트 UI를 만들거나 변경할 때는 [Paseo Plugin Design Rules](docs/DESIGN.md)를 따른다.
-- 디자인 규칙이 공식 Plugin 문서나 대상 플러그인의 생성된 `paseo-plugin.d.ts`와 충돌하면 공식 문서와 생성 타입을 우선하고, 같은 변경에서 `docs/DESIGN.md`를 갱신한다.
+- 디자인 규칙이 공식 Plugin 문서나 대상 Paseo 버전의 `@getpaseo/plugin` package declaration과 충돌하면 공식 문서와 package declaration을 우선하고, 같은 변경에서 `docs/DESIGN.md`를 갱신한다.
 - UI 검토는 `docs/DESIGN.md`의 영향 기반 등급을 적용한다. 변경이 영향을 줄 수 있는 layout, theme, 상태와 접근성만 확인하고, 새 화면·공통 UI 구조·공통 theme token 적용·반응형 동작을 바꾼 경우에만 wide/compact와 밝은/어두운 theme를 모두 확인한다.
 
 ## Common Commands
@@ -44,7 +44,7 @@ npm run typecheck --workspace paseo-plugin
 4. 아래 Workspace Map에 실제 경로와 역할을 추가하고 `.github/ISSUE_TEMPLATE/*.yml`의 대상 선택지를 갱신한다.
 5. 새 플러그인의 workspace 타입 검사와 루트 전체 타입 검사를 실행한다.
 
-기존 플러그인을 복사해 새 플러그인을 만들지 않는다. 현재 Paseo CLI가 생성하는 스캐폴드를 사용해야 플러그인 계약과 `paseo-plugin.d.ts`가 설치된 CLI 버전에 맞는다.
+기존 플러그인을 복사해 새 플러그인을 만들지 않는다. 현재 Paseo CLI가 생성하는 스캐폴드와 exact `@getpaseo/plugin` 의존성을 사용해야 플러그인 계약이 설치된 CLI 버전에 맞는다.
 
 ## Workspace Map
 
@@ -77,7 +77,7 @@ npm run typecheck --workspace paseo-plugin
 - `*.server.ts`: 파일 시스템, 프로세스, 자격 증명, 외부 API처럼 데몬 측에서 실행해야 하는 동작을 소유한다.
 - `*.shared.ts`: 클라이언트와 서버가 함께 쓰는 Zod RPC 계약과 순수 값을 소유한다. Node 또는 React Native 런타임 코드를 넣지 않는다.
 - `paseo-plugin.json`: 설치 기본 ID를 소유한다. 디렉터리명이나 package 이름으로 런타임 ID를 추측하지 않는다.
-- `paseo-plugin.d.ts`: CLI가 생성한 로컬 타입 검사 계약이다. 일반 소스처럼 임의 확장하지 않는다.
+- `package.json`: 로컬 타입 검사용 exact `@getpaseo/plugin` 의존성을 소유한다. 공개 계약을 ambient declaration으로 임의 확장하지 않는다.
 
 클라이언트 모듈에서 `*.server.ts`를 가져오거나 서버 모듈에서 `*.client.tsx`를 가져오지 않는다. 화면 안에서 별도 Paseo 클라이언트를 만들지 않고 제공된 Paseo API를 사용한다.
 
@@ -86,11 +86,11 @@ npm run typecheck --workspace paseo-plugin
 - 기여 ID, surface ID, sidebar의 surface 연결 또는 등록 방식은 같은 플러그인의 `index.ts`에서 함께 갱신한다. 연결된 컴포넌트의 export나 props가 영향을 받을 때만 해당 `*.client.tsx`를 함께 바꾼다.
 - RPC 입력·출력이 바뀌면 실제 영향 범위에 따라 같은 플러그인의 `*.shared.ts` 계약, `*.server.ts` 구현, `index.ts`의 `plugin.handle` 등록과 `*.client.tsx` 호출부를 함께 갱신한다.
 - 플러그인 디렉터리를 추가·삭제·이름 변경하면 이 파일의 Workspace Map, `.github/ISSUE_TEMPLATE/*.yml`의 대상 선택지와 루트 workspace 검증을 같은 변경에서 맞춘다.
-- Paseo 플러그인 계약이 바뀌면 현재 CLI가 생성하는 새 스캐폴드와 공식 참조 문서를 대조하고, 영향받는 각 플러그인의 생성 타입 계약을 확인한다.
+- Paseo 플러그인 계약이 바뀌면 현재 CLI가 생성하는 새 스캐폴드, exact `@getpaseo/plugin` package declaration과 공식 참조 문서를 대조하고, 영향받는 각 플러그인의 타입 계약을 확인한다.
 
 ## Validation and Runtime Safety
 
-- 문서만 바꾸고 플러그인 소스, 생성 타입, workspace 구조와 설치 상태에 영향을 주지 않은 경우에는 typecheck와 테스트를 요구하지 않는다. 문서의 명령·경로·계약을 바꿨다면 해당 내용의 정적 대조나 필요한 최소 검증은 수행한다.
+- 문서만 바꾸고 플러그인 소스, package declaration, workspace 구조와 설치 상태에 영향을 주지 않은 경우에는 typecheck와 테스트를 요구하지 않는다. 문서의 명령·경로·계약을 바꿨다면 해당 내용의 정적 대조나 필요한 최소 검증은 수행한다.
 - 한 플러그인의 소스 변경은 먼저 `npm run typecheck --workspace <package-name>`으로 검사한다.
 - `branch-garden`의 logic, server, shared 또는 view 동작을 바꾸면 `npm run typecheck --workspace branch-garden`과 `npm test --workspace branch-garden`을 모두 실행한다. Git 명령 변경은 read-only allowlist와 실제 Git 상태 무변경 테스트를 반드시 통과해야 한다.
 - `github-project-board`의 logic, server, shared 또는 view 동작을 바꾸면 `npm run typecheck --workspace github-project-board`와 `npm test --workspace github-project-board`를 모두 실행한다. GitHub CLI 명령 변경은 read-only allowlist 테스트를 반드시 통과해야 한다.
@@ -99,8 +99,8 @@ npm run typecheck --workspace paseo-plugin
 - `composer-skills`의 client, catalog, clipboard 또는 registration 동작을 바꾸면 `npm run typecheck --workspace composer-skills`와 `npm test --workspace composer-skills`를 모두 실행한다.
 - `file-browser`의 server, shared 또는 view 동작을 바꾸면 `npm run typecheck --workspace file-browser`와 `npm test --workspace file-browser`를 모두 실행한다. Windows 경로 변경은 allowlist 탈출, link·junction, 민감 파일, preview 크기 제한 테스트를 반드시 통과해야 한다. 다운로드 변경은 localhost bind, Tailnet identity, token 만료·재사용, 요청 시 경로 재검증과 streaming response 테스트를 함께 통과해야 한다. 폴더 ZIP 변경은 root 다운로드 차단, 민감·link·특수 항목 거부, 항목 수·비압축 크기·깊이·동시 전송 제한, UTF-8 이름·빈 폴더 보존과 임시 파일 없는 archive streaming을 추가로 검증한다. Git ignore 또는 다중 선택 변경은 read-only Git 명령과 실제 Git 상태 무변경, 표준 ignore 계층, 비-Git 기본 제외, 명시 파일 선택, 선택 수 제한과 selection manifest 재검증을 함께 검사한다.
 - workspace 구조, 설치 상태 또는 여러 플러그인에 걸친 변경은 루트에서 `npm run typecheck`로 검사한다.
-- Git source 설치나 업데이트 경로를 변경하거나 배포를 준비할 때는 루트에서 `npm run check:git-source-imports`를 실행한다. Git 설치는 package manager와 install script를 실행하지 않으므로 runtime import는 host 제공 모듈, Node 기본 모듈과 플러그인 내부 상대 경로만 사용한다.
-- 같은 컴퓨터에서 소스를 편집하는 개발 흐름은 directory install과 `plugin reload`, 다른 daemon이나 PC에 배포하는 운영 흐름은 Git source의 `plugin add --path`와 `plugin update`를 사용한다. 기존 directory runtime과 Git 검증 runtime에는 서로 다른 ID를 사용한다.
+- Git source 설치나 업데이트 경로를 변경하거나 배포를 준비할 때는 루트에서 `npm run check:git-source-imports`를 실행한다. Paseo는 package manager와 install script를 자동 실행하지 않는다. Manifest에 `build`가 있으면 명시한 argv 명령만 staged plugin directory에서 실행하므로, 현재 플러그인처럼 `build`를 생략한 source의 runtime import는 host 제공 모듈, Node 기본 모듈과 플러그인 내부 상대 경로만 사용한다.
+- 같은 컴퓨터에서 소스를 편집하는 개발 흐름은 directory install과 `plugin reload`, 다른 daemon이나 PC에 배포하는 운영 흐름은 Git source의 `plugin add owner/repository:plugins/<id>`와 `plugin update`를 사용한다. `--path`는 legacy 호환 형식이다. 기존 directory runtime과 Git 검증 runtime에는 서로 다른 ID를 사용한다.
 - 설치·업데이트 또는 재로딩까지 요청된 경우에만 대상 데몬과 source를 확인하고 directory source에는 `paseo plugin install`, Git source에는 `paseo plugin add`/`update`, 소스 변경 반영에는 `paseo plugin reload`를 실행한다. 설치 시 `paseo-plugin.json`의 ID가 기본값이며 `--id`를 지정하면 그 값이 실제 런타임 ID가 된다. 생명주기 명령과 로그 확인 전에는 대상 데몬에서 `paseo plugin ls`를 실행해 실제 런타임 ID를 확인하고, 원격 데몬에는 같은 명령에 `--host <host>`를 사용한다. 명령 실행 후에는 `paseo plugin ls`에서 상태와 오류를 확인한다.
 - 플러그인은 신뢰된 비격리 코드다. 데몬의 전역 플러그인 스위치가 꺼져 있거나 없으면 사용자의 명시적 허가 없이 켜지 않는다.
 - 소스 변경을 반영하려고 데몬을 재시작하지 않는다. `paseo plugin reload <runtime-id>`를 사용한다.

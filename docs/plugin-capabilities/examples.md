@@ -1,6 +1,6 @@
 # 실전 사용 예시
 
-이 문서는 Paseo `0.7.0` Plugin API로 **실제로 무엇을 만들 수 있는지** 빠르게 보여주는 아이디어 모음이다. 예제는 핵심 계약만 보여주며, 실제 Plugin에는 import, loading·empty·error 상태, 접근성 label과 cleanup을 함께 추가한다.
+이 문서는 Paseo `0.7.2` Plugin API로 **실제로 무엇을 만들 수 있는지** 빠르게 보여주는 아이디어 모음이다. 예제는 핵심 계약만 보여주며, 실제 Plugin에는 import, loading·empty·error 상태, 접근성 label과 cleanup을 함께 추가한다.
 
 ## 30초 아이디어 지도
 
@@ -160,7 +160,7 @@ Paseo가 버튼 외형, pending/error 상태와 위치를 소유한다. Plugin�
 
 이 저장소의 [`composer-compact`](../../plugins/composer-compact/)는 이 패턴을 실제로 사용한다. `Compact` pill을 누르면 확인 Modal을 열고, 사용자가 `Compact`를 선택한 경우에만 현재 Agent에 `/compact`를 전송한다. 취소, backdrop, Escape, back action, compact sheet dismiss와 Plugin unload는 모두 명령을 보내지 않고 종료된다.
 
-[`composer-skills`](../../plugins/composer-skills/)도 같은 Composer pill과 Modal 자리를 쓴다. `Skills` pill은 현재 세션의 `agent.commands()` 결과를 보여 준다. Provider가 `kind === "skill"`을 구분하면 그 항목만 쓰고, Grok처럼 모두 `command`로 내려주면 compact/hooks 같은 세션 제어 명령만 제외한다. 확인 시 최종 문장을 클립보드에 복사한 뒤 Toast로 붙여넣기를 안내한다. `send()`로 자동 전송하지 않으며, Paseo `0.7.0`에는 Composer draft를 직접 수정하는 공개 API가 없으므로 입력창에 넣는 동작은 host가 그 API를 지원할 때 업데이트한다.
+[`composer-skills`](../../plugins/composer-skills/)도 같은 Composer pill과 Modal 자리를 쓴다. `Skills` pill은 현재 세션의 `agent.commands()` 결과를 보여 준다. Provider가 `kind === "skill"`을 구분하면 그 항목만 쓰고, Grok처럼 모두 `command`로 내려주면 compact/hooks 같은 세션 제어 명령만 제외한다. 확인 시 최종 문장을 클립보드에 복사한 뒤 Toast로 붙여넣기를 안내한다. `send()`로 자동 전송하지 않으며, Paseo `0.7.2`에는 Composer draft를 직접 수정하는 공개 API가 없으므로 입력창에 넣는 동작은 host가 그 API를 지원할 때 업데이트한다.
 
 ## 5. 확인 Modal과 결과 Toast
 

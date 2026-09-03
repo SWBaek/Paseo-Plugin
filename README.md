@@ -2,7 +2,7 @@
 
 여러 개의 독립적인 로컬 [Paseo](https://paseo.sh) 플러그인을 함께 개발하는 npm workspace입니다. 각 `plugins/*` 디렉터리는 자체 manifest와 진입점을 가진 별도의 설치 단위이며, 플러그인끼리 런타임 코드를 공유하지 않습니다.
 
-> **기준 Paseo 버전: `0.7.0`** — Plugin API는 실험 단계입니다. 다른 Paseo 버전에서 개발하거나 설치할 때는 현재 공식 문서와 해당 CLI가 생성하는 `paseo-plugin.d.ts`를 먼저 대조하세요. 현재 버전의 전체 확장 지점은 [Paseo Plugin Capabilities](docs/plugin-capabilities/README.md)에 정리되어 있습니다.
+> **기준 Paseo 버전: `0.7.2`** — Plugin API는 실험 단계입니다. 다른 Paseo 버전에서 개발하거나 설치할 때는 현재 공식 문서, 해당 CLI의 fresh scaffold와 exact `@getpaseo/plugin` package declaration을 먼저 대조하세요. 현재 버전의 전체 확장 지점은 [Paseo Plugin Capabilities](docs/plugin-capabilities/README.md)에 정리되어 있습니다.
 
 > [!WARNING]
 > Paseo 플러그인은 신뢰된 비격리 코드입니다. 서버 측 코드는 daemon이 실행되는 컴퓨터의 파일, 프로세스, 자격 증명과 네트워크에 접근할 수 있고, 클라이언트 코드는 Paseo 앱 안에서 실행됩니다. 검토하고 신뢰하는 소스만 설치하세요.
@@ -17,6 +17,7 @@
 | [`tailscale-dashboard`](plugins/tailscale-dashboard/) | Personal operations | 선택된 host의 Tailscale Serve 구성을 읽기 전용으로 조사하고, 검증된 TailscaleOps 핵심 현황을 Paseo 안에 표시합니다. 전체 Dashboard는 필요할 때 시스템 브라우저로 엽니다. |
 | [`composer-compact`](plugins/composer-compact/) | Personal productivity | Agent의 Composer track bar에 `Compact` pill을 추가하고 확인 Modal에서 승인한 경우에만 해당 Agent에 `/compact`를 전송합니다. |
 | [`composer-skills`](plugins/composer-skills/) | Personal productivity | Agent의 Composer track bar에 `Skills` pill을 추가하고, 현재 세션 Skill을 Modal에서 고른 뒤 최종 문장을 클립보드에 복사합니다. 자동 전송과 Composer 직접 입력은 하지 않습니다. |
+| [`file-browser`](plugins/file-browser/) | Personal operations | 선택된 Windows daemon host의 `C:\Projects`를 읽기 전용으로 탐색하고, 검증된 파일과 폴더 ZIP을 Tailnet 전용 일회용 HTTPS URL로 내려받습니다. |
 
 Runtime ID의 기준은 디렉터리명이나 package 이름이 아니라 각 플러그인의 `paseo-plugin.json`입니다.
 
@@ -24,7 +25,7 @@ Runtime ID의 기준은 디렉터리명이나 package 이름이 아니라 각 �
 
 필요한 도구:
 
-- Paseo Desktop/daemon/CLI `0.7.0`
+- Paseo Desktop/daemon/CLI `0.7.2`
 - Node.js와 npm
 - `github-project-board`를 사용할 경우 인증된 [GitHub CLI](https://cli.github.com/)
 - `tailscale-dashboard`를 사용할 경우 로그인된 [Tailscale CLI](https://tailscale.com/docs/reference/tailscale-cli)와 HTTPS Serve로 공개된 TailscaleOps Dashboard
@@ -45,6 +46,7 @@ npm test --workspace github-project-board
 npm test --workspace tailscale-dashboard
 npm test --workspace composer-compact
 npm test --workspace composer-skills
+npm test --workspace file-browser
 ```
 
 플러그인 하나만 검사할 때는 package 이름을 workspace 선택자로 사용합니다.
@@ -66,6 +68,7 @@ paseo plugin install (Join-Path $repoRoot "plugins\github-project-board")
 paseo plugin install (Join-Path $repoRoot "plugins\tailscale-dashboard")
 paseo plugin install (Join-Path $repoRoot "plugins\composer-compact")
 paseo plugin install (Join-Path $repoRoot "plugins\composer-skills")
+paseo plugin install (Join-Path $repoRoot "plugins\file-browser")
 paseo plugin ls
 ```
 
@@ -83,16 +86,17 @@ paseo plugin logs branch-garden
 
 ## Git source 배포와 update
 
-다른 daemon이나 PC에 배포할 때는 Git source와 monorepo `--path`를 사용합니다. Git 설치는 package manager나 install script를 실행하지 않으므로 먼저 runtime import 검사와 타입 검사를 통과시켜야 합니다.
+다른 daemon이나 PC에 배포할 때는 Git source의 canonical monorepo `repository:relative/path` 형식을 사용합니다. Paseo는 lockfile을 보고 package manager나 install script를 자동 실행하지 않습니다. 다만 manifest에 명시적인 `build`가 있으면 신뢰된 비격리 준비 명령으로 실행하므로, 먼저 source를 검토하고 runtime import 검사와 타입 검사를 통과시켜야 합니다.
 
 ```powershell
 npm run check:git-source-imports
 npm run typecheck
-paseo plugin add SWBaek/Paseo-Plugin --path plugins/branch-garden
-paseo plugin add SWBaek/Paseo-Plugin --path plugins/github-project-board
-paseo plugin add SWBaek/Paseo-Plugin --path plugins/tailscale-dashboard
-paseo plugin add SWBaek/Paseo-Plugin --path plugins/composer-compact
-paseo plugin add SWBaek/Paseo-Plugin --path plugins/composer-skills
+paseo plugin add SWBaek/Paseo-Plugin:plugins/branch-garden
+paseo plugin add SWBaek/Paseo-Plugin:plugins/github-project-board
+paseo plugin add SWBaek/Paseo-Plugin:plugins/tailscale-dashboard
+paseo plugin add SWBaek/Paseo-Plugin:plugins/composer-compact
+paseo plugin add SWBaek/Paseo-Plugin:plugins/composer-skills
+paseo plugin add SWBaek/Paseo-Plugin:plugins/file-browser
 paseo plugin status
 paseo plugin update --all
 ```
@@ -109,7 +113,8 @@ paseo plugin update --all
 │   ├── github-project-board/
 │   ├── tailscale-dashboard/
 │   ├── composer-compact/
-│   └── composer-skills/
+│   ├── composer-skills/
+│   └── file-browser/
 ├── docs/
 │   ├── DESIGN.md
 │   ├── GIT_INSTALLATION.md
@@ -132,7 +137,7 @@ paseo plugin update --all
 | `*.server.ts` | 파일 시스템, 프로세스, 자격 증명과 외부 API 같은 daemon 측 동작 |
 | `*.shared.ts` | 클라이언트와 서버가 공유하는 Zod RPC 계약과 순수 값 |
 | `paseo-plugin.json` | 기본 설치 runtime ID |
-| `paseo-plugin.d.ts` | 설치된 Paseo CLI가 생성한 로컬 타입 검사 계약 |
+| `package.json` | 로컬 타입 검사에 사용하는 exact `@getpaseo/plugin` 개발 의존성 |
 
 클라이언트 모듈에서 `*.server.ts`를 가져오거나 서버 모듈에서 `*.client.tsx`를 가져오지 않습니다. 화면 안에서 별도의 Paseo client를 생성하지 않고 host가 제공한 Paseo API와 plugin RPC를 사용합니다.
 

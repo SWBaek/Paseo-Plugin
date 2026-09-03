@@ -1,6 +1,6 @@
 # Git source 설치와 업데이트
 
-이 문서는 Paseo `0.7.0`에서 이 monorepo의 개별 플러그인을 Git source로 배포하는 절차를 설명합니다. Git source는 다른 daemon이나 PC에 배포하고 추적 ref를 업데이트하는 운영 경로입니다. 같은 컴퓨터에서 소스를 편집하는 동안에는 directory source 설치와 `plugin reload`를 사용하세요.
+이 문서는 Paseo `0.7.2`에서 이 monorepo의 개별 플러그인을 Git source로 배포하는 절차를 설명합니다. Git source는 다른 daemon이나 PC에 배포하고 추적 ref를 업데이트하는 운영 경로입니다. 같은 컴퓨터에서 소스를 편집하는 동안에는 directory source 설치와 `plugin reload`를 사용하세요.
 
 > [!WARNING]
 > Paseo 플러그인은 신뢰된 비격리 코드입니다. 설치 전에 source와 대상 daemon을 확인하고, 전역 플러그인 switch가 꺼져 있으면 사용자의 명시적 승인 없이 켜지 마세요.
@@ -10,7 +10,7 @@
 | 용도 | Source | 반영 명령 | 특징 |
 | --- | --- | --- | --- |
 | 로컬 개발 | 절대 directory 경로 | `paseo plugin reload <runtime-id>` | 현재 working tree를 다시 compile합니다. |
-| 배포·운영 | Git remote와 monorepo `--path` | `paseo plugin update <runtime-id>` | managed checkout의 추적 ref를 검증한 뒤 교체합니다. |
+| 배포·운영 | Git remote와 monorepo `repository:relative/path` | `paseo plugin update <runtime-id>` | managed checkout의 추적 ref를 검증한 뒤 교체합니다. |
 
 두 방식은 같은 runtime ID를 공유하지 마세요. 기존 directory 설치가 있는 daemon에서 Git 흐름을 검증할 때는 `--id <temporary-id>`로 별도 runtime을 만들고 검증 후 제거합니다.
 
@@ -24,35 +24,55 @@ paseo daemon status --json
 paseo plugin ls
 ```
 
-Git 설치는 package manager와 install script를 실행하지 않습니다. 따라서 배포할 source의 runtime import는 Paseo가 제공하는 모듈, Node 기본 모듈, 플러그인 내부 상대 경로로 한정해야 합니다.
+Paseo는 lockfile을 보고 package manager나 install script를 자동 실행하지 않습니다. Manifest에 `build`가 없으면 배포할 source의 runtime import를 Paseo 제공 모듈, Node 기본 모듈과 플러그인 내부 상대 경로로 한정해야 합니다. 이 저장소의 현재 플러그인은 모두 이 방식이며 `build`가 필요하지 않습니다.
 
 ```powershell
 npm run check:git-source-imports
 npm run typecheck
 ```
 
-자동 검사는 테스트·생성 선언을 제외한 각 플러그인의 TypeScript source를 확인합니다. `@getpaseo/plugin`, `@getpaseo/plugin/server`, React·React Native·TanStack Query·Zod, Node 기본 모듈과 상대 import만 runtime dependency로 허용합니다. `import type`은 bundle에서 제거되므로 검사 대상이 아닙니다.
+자동 검사는 테스트와 TypeScript declaration을 제외한 각 플러그인의 source를 확인합니다. `@getpaseo/plugin`, `@getpaseo/plugin/server`, React·React Native·TanStack Query·Zod, Node 기본 모듈과 상대 import만 runtime dependency로 허용합니다. `import type`은 bundle에서 제거되므로 검사 대상이 아닙니다.
 
 ## Monorepo 플러그인 설치
 
 manifest의 기본 runtime ID로 설치합니다.
 
 ```powershell
-paseo plugin add SWBaek/Paseo-Plugin --path plugins/branch-garden
-paseo plugin add SWBaek/Paseo-Plugin --path plugins/github-project-board
-paseo plugin add SWBaek/Paseo-Plugin --path plugins/tailscale-dashboard
-paseo plugin add SWBaek/Paseo-Plugin --path plugins/composer-compact
-paseo plugin add SWBaek/Paseo-Plugin --path plugins/composer-skills
+paseo plugin add SWBaek/Paseo-Plugin:plugins/branch-garden
+paseo plugin add SWBaek/Paseo-Plugin:plugins/github-project-board
+paseo plugin add SWBaek/Paseo-Plugin:plugins/tailscale-dashboard
+paseo plugin add SWBaek/Paseo-Plugin:plugins/composer-compact
+paseo plugin add SWBaek/Paseo-Plugin:plugins/composer-skills
+paseo plugin add SWBaek/Paseo-Plugin:plugins/file-browser
 paseo plugin ls
 ```
 
 기존 runtime과 충돌하지 않는 검증 ID가 필요하면 다음처럼 지정합니다.
 
 ```powershell
-paseo plugin add SWBaek/Paseo-Plugin `
-  --path plugins/branch-garden `
+paseo plugin add SWBaek/Paseo-Plugin:plugins/branch-garden `
   --id branch-garden-git-verify
 ```
+
+`--path`는 기존 자동화와의 호환을 위한 legacy 형식입니다. 새 명령과 문서에는 source 뒤에 `:relative/path`를 붙이는 canonical 형식을 사용합니다.
+
+## 선택적 build 명령
+
+대부분의 플러그인은 `build`를 생략해야 합니다. Paseo가 제공하지 않는 의존성을 설치하거나 source·asset 생성이 반드시 필요할 때만 `paseo-plugin.json`에 argv 배열 목록을 선언합니다.
+
+```json
+{
+  "id": "example-plugin",
+  "build": [
+    ["npm", "ci"],
+    ["npm", "run", "build"]
+  ]
+}
+```
+
+Paseo는 정확한 commit과 manifest를 확인한 뒤 staged plugin directory에서 각 executable을 shell 없이 직접 실행합니다. Install과 update 모두 validation·compile·activation 전에 이 명령을 실행하며, package manager나 명령을 lockfile에서 추론하지 않습니다.
+
+`build`도 플러그인과 마찬가지로 신뢰된 비격리 코드입니다. 대상 daemon 사용자의 파일·프로세스·자격 증명과 네트워크 권한으로 실행되고, `--host`를 사용하면 원격 daemon host에서 실행됩니다. 명령이 실패하면 후보를 폐기하고 기존 설치·실행 버전을 유지하므로 출력과 daemon log를 확인한 뒤 source를 수정해 다시 update합니다.
 
 설치 결과에서 `source`가 `git`, `status`가 `running`, `path`가 daemon home 아래 managed checkout인지 확인합니다. 실패하면 `paseo plugin logs <runtime-id>`로 초기화와 compile 오류를 확인합니다.
 
