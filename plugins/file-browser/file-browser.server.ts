@@ -4,6 +4,11 @@ import type { FileHandle } from "node:fs/promises";
 import path from "node:path";
 import { TextDecoder } from "node:util";
 import {
+  isDefaultArchiveExcluded,
+  listGitArchiveFiles,
+} from "./archive-filter.server";
+import {
+  ARCHIVE_SELECTION_MAX_ITEMS,
   DIRECTORY_DOWNLOAD_MAX_BYTES,
   DIRECTORY_DOWNLOAD_MAX_DEPTH,
   DIRECTORY_DOWNLOAD_MAX_ENTRIES,
@@ -25,6 +30,7 @@ export interface FileBrowserServiceOptions {
   roots?: readonly FileBrowserRootConfig[];
   platform?: NodeJS.Platform;
   directoryDownloadLimits?: Partial<DirectoryDownloadLimits>;
+  listGitFiles?: (directory: string) => Promise<string[] | null>;
 }
 
 export interface OpenedDownloadFile {
@@ -45,6 +51,7 @@ export interface DownloadDirectoryManifest {
   rootId: string;
   segments: string[];
   name: string;
+  selectionNames?: string[];
   entries: DownloadDirectoryEntry[];
   totalSizeBytes: number;
 }
@@ -190,6 +197,7 @@ export function createFileBrowserService(options: FileBrowserServiceOptions = {}
     maxBytes: options.directoryDownloadLimits?.maxBytes ?? DIRECTORY_DOWNLOAD_MAX_BYTES,
     maxDepth: options.directoryDownloadLimits?.maxDepth ?? DIRECTORY_DOWNLOAD_MAX_DEPTH,
   };
+  const listGitFiles = options.listGitFiles ?? listGitArchiveFiles;
 
   function requireWindows(): void {
     if (platform !== "win32") {
@@ -284,15 +292,22 @@ export function createFileBrowserService(options: FileBrowserServiceOptions = {}
     const normalized: DirectoryEntry[] = entries
       .map((entry) => {
         const kind = entryKind(entry);
+        const previewStatus =
+          kind === "file"
+            ? isSensitiveFileName(entry.name)
+              ? "sensitive"
+              : "available"
+            : "unsupported";
         return {
           name: entry.name,
           kind,
-          previewStatus:
-            kind === "file"
-              ? isSensitiveFileName(entry.name)
-                ? "sensitive"
-                : "available"
-              : "unsupported",
+          previewStatus,
+          archiveStatus:
+            kind === "link" || kind === "other" || previewStatus === "sensitive"
+              ? "blocked"
+              : kind === "directory" && isDefaultArchiveExcluded([entry.name], "directory")
+                ? "excluded"
+                : "available",
         } satisfies DirectoryEntry;
       })
       .sort(compareEntries);
@@ -397,28 +412,14 @@ export function createFileBrowserService(options: FileBrowserServiceOptions = {}
     }
   }
 
-  async function prepareDownloadDirectory(input: {
-    rootId: string;
-    segments: string[];
-  }): Promise<DownloadDirectoryManifest> {
-    const name = input.segments.at(-1);
-    if (!name) throw publicError("C:\\Projects 루트 전체는 다운로드할 수 없습니다.");
-
-    const resolved = await resolveExisting(input.rootId, input.segments);
-    let rootInfo;
-    try {
-      rootInfo = await lstat(resolved.physicalTarget);
-    } catch {
-      throw publicError("다운로드할 폴더를 열 수 없습니다.");
-    }
-    if (!rootInfo.isDirectory() || rootInfo.isSymbolicLink()) {
-      throw publicError("일반 폴더만 다운로드할 수 있습니다.");
-    }
-
+  function createArchiveAccumulator() {
     const entries: DownloadDirectoryEntry[] = [];
+    const archivePaths = new Set<string>();
     let totalSizeBytes = 0;
 
     function addEntry(entry: DownloadDirectoryEntry): void {
+      const archiveKey = entry.archivePath.toLocaleLowerCase("en-US");
+      if (archivePaths.has(archiveKey)) return;
       if (Buffer.byteLength(entry.archivePath, "utf8") > 0xffff) {
         throw publicError("ZIP 안의 경로가 너무 깁니다.");
       }
@@ -433,20 +434,124 @@ export function createFileBrowserService(options: FileBrowserServiceOptions = {}
           throw publicError("폴더의 비압축 크기는 최대 2 GiB까지 다운로드할 수 있습니다.");
         }
       }
+      archivePaths.add(archiveKey);
       entries.push(entry);
     }
 
-    addEntry({
+    return {
+      addEntry,
+      snapshot: () => ({ entries, totalSizeBytes }),
+    };
+  }
+
+  async function appendRegularFile(
+    rootId: string,
+    segments: string[],
+    archivePath: string,
+    accumulator: ReturnType<typeof createArchiveAccumulator>,
+    sensitiveContext: "selected" | "contained" = "selected",
+  ): Promise<void> {
+    const name = segments.at(-1);
+    if (!name) throw publicError("다운로드할 파일을 선택하세요.");
+    if (isSensitiveFileName(name)) {
+      throw publicError(
+        sensitiveContext === "contained"
+          ? `민감 파일 ${name}이 포함된 폴더는 다운로드할 수 없습니다.`
+          : `민감 파일 ${name}은 다운로드할 수 없습니다.`,
+      );
+    }
+    const resolved = await resolveExisting(rootId, segments);
+    const info = await lstat(resolved.physicalTarget);
+    if (!info.isFile() || info.isSymbolicLink()) {
+      throw publicError("일반 파일만 ZIP에 포함할 수 있습니다.");
+    }
+    accumulator.addEntry({
+      kind: "file",
+      segments: [...segments],
+      archivePath,
+      sizeBytes: info.size,
+      modifiedAtMs: info.mtimeMs,
+    });
+  }
+
+  async function appendSmartDirectory(
+    rootId: string,
+    directorySegments: string[],
+    archiveRootName: string,
+    accumulator: ReturnType<typeof createArchiveAccumulator>,
+  ): Promise<void> {
+    if (isDefaultArchiveExcluded([archiveRootName], "directory")) {
+      throw publicError(`${archiveRootName} 폴더는 ZIP 기본 제외 대상입니다.`);
+    }
+    const resolved = await resolveExisting(rootId, directorySegments);
+    const rootInfo = await lstat(resolved.physicalTarget);
+    if (!rootInfo.isDirectory() || rootInfo.isSymbolicLink()) {
+      throw publicError("일반 폴더만 다운로드할 수 있습니다.");
+    }
+    accumulator.addEntry({
       kind: "directory",
-      segments: [...input.segments],
-      archivePath: name,
+      segments: [...directorySegments],
+      archivePath: archiveRootName,
       sizeBytes: 0,
       modifiedAtMs: rootInfo.mtimeMs,
     });
 
+    const gitFiles = await listGitFiles(resolved.physicalTarget);
+    if (gitFiles !== null) {
+      const sortedFiles = [...new Set(gitFiles)].sort((left, right) =>
+        left.localeCompare(right, "en-US", { numeric: true, sensitivity: "base" }),
+      );
+      for (const gitPath of sortedFiles) {
+        const relativeSegments = gitPath.replace(/\\/g, "/").split("/").filter(Boolean);
+        if (relativeSegments.length === 0) continue;
+        for (const segment of relativeSegments) validatePathSegment(segment);
+        if (relativeSegments.length > directoryDownloadLimits.maxDepth) {
+          throw publicError(
+            `선택한 폴더부터 최대 ${directoryDownloadLimits.maxDepth}단계까지만 다운로드할 수 있습니다.`,
+          );
+        }
+        if (isDefaultArchiveExcluded(relativeSegments, "file")) continue;
+
+        const lexicalCandidate = path.win32.join(resolved.lexicalTarget, ...relativeSegments);
+        try {
+          await lstat(lexicalCandidate);
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
+          throw publicError("Git 파일을 검사할 수 없습니다.");
+        }
+
+        for (let depth = 1; depth < relativeSegments.length; depth += 1) {
+          const directoryRelative = relativeSegments.slice(0, depth);
+          if (isDefaultArchiveExcluded(directoryRelative, "directory")) break;
+          const entrySegments = [...directorySegments, ...directoryRelative];
+          const entryResolved = await resolveExisting(rootId, entrySegments);
+          const info = await lstat(entryResolved.physicalTarget);
+          if (!info.isDirectory() || info.isSymbolicLink()) {
+            throw publicError("Git 파일 경로에 일반 폴더가 아닌 항목이 포함되어 있습니다.");
+          }
+          accumulator.addEntry({
+            kind: "directory",
+            segments: entrySegments,
+            archivePath: [archiveRootName, ...directoryRelative].join("/"),
+            sizeBytes: 0,
+            modifiedAtMs: info.mtimeMs,
+          });
+        }
+
+        await appendRegularFile(
+          rootId,
+          [...directorySegments, ...relativeSegments],
+          [archiveRootName, ...relativeSegments].join("/"),
+          accumulator,
+          "contained",
+        );
+      }
+      return;
+    }
+
     async function walk(
       physicalDirectory: string,
-      directorySegments: string[],
+      currentSegments: string[],
       relativeSegments: string[],
     ): Promise<void> {
       let children;
@@ -467,13 +572,15 @@ export function createFileBrowserService(options: FileBrowserServiceOptions = {}
 
       for (const child of children) {
         validatePathSegment(child.name);
-        const nextRelativeSegments = [...relativeSegments, child.name];
-        if (nextRelativeSegments.length > directoryDownloadLimits.maxDepth) {
+        const nextRelative = [...relativeSegments, child.name];
+        const childKind = child.isDirectory() ? "directory" : "file";
+        if (isDefaultArchiveExcluded(nextRelative, childKind)) continue;
+        if (nextRelative.length > directoryDownloadLimits.maxDepth) {
           throw publicError(
             `선택한 폴더부터 최대 ${directoryDownloadLimits.maxDepth}단계까지만 다운로드할 수 있습니다.`,
           );
         }
-        const nextSegments = [...directorySegments, child.name];
+        const nextSegments = [...currentSegments, child.name];
         const physicalPath = path.win32.join(physicalDirectory, child.name);
         let info;
         let actualPath;
@@ -496,51 +603,113 @@ export function createFileBrowserService(options: FileBrowserServiceOptions = {}
           throw publicError("경로가 허용된 파일 루트를 벗어났습니다.");
         }
 
-        const archivePath = [name, ...nextRelativeSegments].join("/");
+        const archivePath = [archiveRootName, ...nextRelative].join("/");
         if (info.isDirectory()) {
-          addEntry({
+          accumulator.addEntry({
             kind: "directory",
             segments: nextSegments,
             archivePath,
             sizeBytes: 0,
             modifiedAtMs: info.mtimeMs,
           });
-          await walk(actualPath, nextSegments, nextRelativeSegments);
+          await walk(actualPath, nextSegments, nextRelative);
           continue;
         }
         if (!info.isFile()) {
           throw publicError("지원하지 않는 항목이 포함된 폴더는 다운로드할 수 없습니다.");
         }
-        if (isSensitiveFileName(child.name)) {
-          throw publicError(`민감 파일 ${child.name}이 포함된 폴더는 다운로드할 수 없습니다.`);
-        }
-        addEntry({
-          kind: "file",
-          segments: nextSegments,
-          archivePath,
-          sizeBytes: info.size,
-          modifiedAtMs: info.mtimeMs,
-        });
+        await appendRegularFile(rootId, nextSegments, archivePath, accumulator, "contained");
       }
     }
 
-    await walk(resolved.physicalTarget, [...input.segments], []);
+    await walk(resolved.physicalTarget, [...directorySegments], []);
+  }
+
+  async function prepareDownloadDirectory(input: {
+    rootId: string;
+    segments: string[];
+  }): Promise<DownloadDirectoryManifest> {
+    const name = input.segments.at(-1);
+    if (!name) throw publicError("C:\\Projects 루트 전체는 다운로드할 수 없습니다.");
+    const accumulator = createArchiveAccumulator();
+    await appendSmartDirectory(input.rootId, [...input.segments], name, accumulator);
+    const snapshot = accumulator.snapshot();
     return {
-      rootId: resolved.root.id,
+      rootId: input.rootId,
       segments: [...input.segments],
       name,
-      entries,
-      totalSizeBytes,
+      entries: snapshot.entries,
+      totalSizeBytes: snapshot.totalSizeBytes,
+    };
+  }
+
+  async function prepareDownloadSelection(input: {
+    rootId: string;
+    segments: string[];
+    names: string[];
+  }): Promise<DownloadDirectoryManifest> {
+    if (input.names.length === 0 || input.names.length > ARCHIVE_SELECTION_MAX_ITEMS) {
+      throw publicError(`한 번에 최대 ${ARCHIVE_SELECTION_MAX_ITEMS}개 항목을 선택할 수 있습니다.`);
+    }
+    const uniqueNames = new Map<string, string>();
+    for (const name of input.names) {
+      validatePathSegment(name);
+      uniqueNames.set(name.toLocaleLowerCase("en-US"), name);
+    }
+    if (uniqueNames.size !== input.names.length) {
+      throw publicError("같은 항목을 중복 선택할 수 없습니다.");
+    }
+
+    const base = await resolveExisting(input.rootId, input.segments);
+    const baseInfo = await lstat(base.physicalTarget);
+    if (!baseInfo.isDirectory() || baseInfo.isSymbolicLink()) {
+      throw publicError("선택 항목의 기준 폴더를 열 수 없습니다.");
+    }
+
+    const names = [...uniqueNames.values()].sort((left, right) =>
+      left.localeCompare(right, "en-US", { numeric: true, sensitivity: "base" }),
+    );
+    const accumulator = createArchiveAccumulator();
+    let onlyDirectoryName: string | null = null;
+    for (const name of names) {
+      const entrySegments = [...input.segments, name];
+      const resolved = await resolveExisting(input.rootId, entrySegments);
+      const info = await lstat(resolved.physicalTarget);
+      if (info.isDirectory() && !info.isSymbolicLink()) {
+        onlyDirectoryName = names.length === 1 ? name : null;
+        await appendSmartDirectory(input.rootId, entrySegments, name, accumulator);
+        continue;
+      }
+      if (info.isFile() && !info.isSymbolicLink()) {
+        await appendRegularFile(input.rootId, entrySegments, name, accumulator);
+        continue;
+      }
+      throw publicError(`${name}은 ZIP에 포함할 수 없는 항목입니다.`);
+    }
+    const snapshot = accumulator.snapshot();
+    return {
+      rootId: input.rootId,
+      segments: [...input.segments],
+      selectionNames: names,
+      name: onlyDirectoryName ?? `${input.segments.at(-1) ?? "Projects"}-selection`,
+      entries: snapshot.entries,
+      totalSizeBytes: snapshot.totalSizeBytes,
     };
   }
 
   async function revalidateDownloadDirectory(
     manifest: DownloadDirectoryManifest,
   ): Promise<DownloadDirectoryManifest> {
-    const current = await prepareDownloadDirectory({
-      rootId: manifest.rootId,
-      segments: manifest.segments,
-    });
+    const current = manifest.selectionNames
+      ? await prepareDownloadSelection({
+          rootId: manifest.rootId,
+          segments: manifest.segments,
+          names: manifest.selectionNames,
+        })
+      : await prepareDownloadDirectory({
+          rootId: manifest.rootId,
+          segments: manifest.segments,
+        });
     const unchanged =
       current.totalSizeBytes === manifest.totalSizeBytes &&
       current.entries.length === manifest.entries.length &&
@@ -601,6 +770,7 @@ export function createFileBrowserService(options: FileBrowserServiceOptions = {}
     previewFile,
     openDownloadFile,
     prepareDownloadDirectory,
+    prepareDownloadSelection,
     revalidateDownloadDirectory,
     openDownloadArchiveFile,
   };
@@ -639,6 +809,14 @@ export function prepareFileBrowserDirectoryDownload(input: {
   segments: string[];
 }) {
   return defaultFileBrowserService.prepareDownloadDirectory(input);
+}
+
+export function prepareFileBrowserSelectionDownload(input: {
+  rootId: string;
+  segments: string[];
+  names: string[];
+}) {
+  return defaultFileBrowserService.prepareDownloadSelection(input);
 }
 
 export function revalidateFileBrowserDirectoryDownload(

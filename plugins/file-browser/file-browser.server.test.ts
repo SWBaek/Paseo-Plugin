@@ -1,6 +1,8 @@
+import { execFile } from "node:child_process";
 import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   DirectoryPageSchema,
@@ -13,6 +15,8 @@ import {
   isSensitiveFileName,
   validatePathSegment,
 } from "./file-browser.server";
+
+const execFileAsync = promisify(execFile);
 
 describe("file-browser server", () => {
   let root: string;
@@ -89,6 +93,7 @@ describe("file-browser server", () => {
       name: "outside-link",
       kind: "link",
       previewStatus: "unsupported",
+      archiveStatus: "blocked",
     });
     await expect(
       browser.listDirectory({ rootId: "projects", segments: ["outside-link"], cursor: null }),
@@ -203,7 +208,10 @@ describe("file-browser server", () => {
 
   it("prepares a bounded manifest with a containing root and empty directories", async () => {
     await mkdir(path.join(root, "bundle", "빈 폴더"), { recursive: true });
+    await mkdir(path.join(root, "bundle", "node_modules"), { recursive: true });
     await writeFile(path.join(root, "bundle", "문서.txt"), "content", "utf8");
+    await writeFile(path.join(root, "bundle", "debug.log"), "noise", "utf8");
+    await writeFile(path.join(root, "bundle", "node_modules", "dependency.js"), "noise", "utf8");
 
     const manifest = await service().prepareDownloadDirectory({
       rootId: "projects",
@@ -217,6 +225,72 @@ describe("file-browser server", () => {
       { kind: "directory", archivePath: "bundle/빈 폴더" },
       { kind: "file", archivePath: "bundle/문서.txt" },
     ]);
+  });
+
+  it("uses standard Git excludes without changing repository state", async () => {
+    const repository = path.join(root, "repository");
+    const globalExcludes = path.join(outside, "global-excludes");
+    await mkdir(repository);
+    await execFileAsync("git", ["-C", repository, "init"]);
+    await execFileAsync("git", ["-C", repository, "config", "core.excludesFile", globalExcludes]);
+    await writeFile(path.join(repository, ".gitignore"), "ignored.txt\nnode_modules/\n.env\n", "utf8");
+    await writeFile(path.join(repository, ".git", "info", "exclude"), "info-only.txt\n", "utf8");
+    await writeFile(globalExcludes, "global-only.bin\n", "utf8");
+    await writeFile(path.join(repository, "included.txt"), "included", "utf8");
+    await writeFile(path.join(repository, "ignored.txt"), "ignored", "utf8");
+    await writeFile(path.join(repository, "info-only.txt"), "ignored", "utf8");
+    await writeFile(path.join(repository, "global-only.bin"), "ignored", "utf8");
+    await writeFile(path.join(repository, ".env"), "SECRET=ignored", "utf8");
+    await mkdir(path.join(repository, "node_modules"));
+    await writeFile(path.join(repository, "node_modules", "dependency.js"), "ignored", "utf8");
+    await execFileAsync("git", ["-C", repository, "add", "--", ".gitignore", "included.txt"]);
+    const before = (await execFileAsync("git", ["-C", repository, "status", "--porcelain=v1"])).stdout;
+
+    const manifest = await service().prepareDownloadDirectory({
+      rootId: "projects",
+      segments: ["repository"],
+    });
+    const after = (await execFileAsync("git", ["-C", repository, "status", "--porcelain=v1"])).stdout;
+
+    expect(manifest.entries.map((entry) => entry.archivePath)).toEqual([
+      "repository",
+      "repository/.gitignore",
+      "repository/included.txt",
+    ]);
+    expect(after).toBe(before);
+
+    await execFileAsync("git", ["-C", repository, "add", "-f", "--", ".env"]);
+    await expect(
+      service().prepareDownloadDirectory({ rootId: "projects", segments: ["repository"] }),
+    ).rejects.toThrow("민감 파일 .env이 포함된 폴더는 다운로드할 수 없습니다");
+  });
+
+  it("prepares a filtered ZIP manifest for selected sibling files and folders", async () => {
+    await mkdir(path.join(root, "project", "node_modules"), { recursive: true });
+    await writeFile(path.join(root, "project", "source.ts"), "source", "utf8");
+    await writeFile(path.join(root, "project", "node_modules", "dependency.js"), "noise", "utf8");
+    await writeFile(path.join(root, "explicit.log"), "chosen", "utf8");
+
+    const manifest = await service().prepareDownloadSelection({
+      rootId: "projects",
+      segments: [],
+      names: ["project", "explicit.log"],
+    });
+
+    expect(manifest.name).toBe("Projects-selection");
+    expect(manifest.selectionNames).toEqual(["explicit.log", "project"]);
+    expect(manifest.entries.map((entry) => entry.archivePath)).toEqual([
+      "explicit.log",
+      "project",
+      "project/source.ts",
+    ]);
+    await expect(
+      service().prepareDownloadSelection({
+        rootId: "projects",
+        segments: ["project"],
+        names: ["node_modules"],
+      }),
+    ).rejects.toThrow("ZIP 기본 제외 대상");
   });
 
   it("refuses the allowlisted root and junctions for directory downloads", async () => {
