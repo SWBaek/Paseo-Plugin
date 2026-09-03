@@ -146,14 +146,32 @@ Compact 화면을 먼저 설계하고 wide 화면은 같은 정보와 행동에 
 - Loading과 상태 갱신 때 발생하는 불필요한 layout shift
 - 확인 없는 파괴적 행동
 
+## Risk-based UI validation
+
+UI 수동 검수는 모든 환경의 일률적인 조합이 아니라 변경이 실제로 영향을 줄 수 있는 범위를 기준으로 한다. 변경 전에 아래 등급을 고르고, 영향 여부가 불확실하면 한 단계 높은 등급을 적용한다.
+
+| 등급 | 변경 범위 | 필수 수동 검수 |
+| --- | --- | --- |
+| A | 데이터 처리, 이벤트 연결, 내부 refactor처럼 시각적 결과와 UI 상태를 바꾸지 않음 | 수동 UI 검수 없음 |
+| B | 짧은 문구, 단일 icon, 국소적인 control처럼 theme·layout·상태 계약을 바꾸지 않는 수정 | 관련 화면을 대표 환경 하나에서 확인 |
+| C | 색상이나 상태 tone, 긴 문구와 줄바꿈, spacing·배치, loading·empty·error·disabled 중 특정 축을 바꾸는 수정 | 영향받은 축만 확인. 색상은 밝은/어두운 theme, 배치와 줄바꿈은 wide/compact, 상태는 변경한 상태를 확인 |
+| D | 새 화면, 여러 위치에서 쓰는 공통 UI 구조, 공통 theme token의 적용 방식, 화면의 반응형 구조를 바꾸는 수정 | wide/compact와 밝은/어두운 theme를 모두 확인하고, 존재하며 영향받는 상태와 접근성을 함께 확인 |
+
+C 등급에서는 서로 영향을 주지 않는 축까지 전부 조합할 필요가 없다. 예를 들어 줄바꿈만 바꿨다면 wide/compact를 확인하되 밝은/어두운 theme까지 반복하지 않고, 상태 tone만 바꿨다면 두 theme의 해당 상태를 확인하되 모든 layout과 다른 상태를 반복하지 않는다.
+
+존재하지 않거나 변경의 영향을 받지 않는 loading·empty·error·disabled 상태를 검수를 위해 새로 만들거나 억지로 재현하지 않는다. 자동 테스트, 보안 회귀 테스트와 typecheck 범위는 이 등급으로 완화하지 않고 `AGENTS.md`의 변경 경로별 기준을 따른다.
+
+검수 결과는 다음처럼 짧게 기록한다.
+
+> UI 검수: B / dark·compact 확인 / light·wide 생략: theme과 layout에 영향을 주지 않는 icon 수정
+
 ## UI review checklist
 
-UI 변경을 완료하기 전에 다음을 확인한다.
+UI 변경을 완료하기 전에 변경 등급에 적용되는 항목만 확인한다.
 
-- 대상 workspace의 typecheck가 통과한다.
-- Wide와 compact에서 정보와 action을 모두 사용할 수 있다.
-- 밝은 theme와 어두운 theme에서 모든 글자, 경계와 상태가 읽힌다.
-- Primary action이 하나를 넘지 않고 disabled·pending·error 상태가 안정적으로 동작한다.
-- Touch target, 접근성 role과 label이 적절하다.
+- 플러그인 소스를 바꿨다면 대상 workspace의 typecheck가 통과한다.
+- 선택한 등급에 필요한 layout, theme와 상태를 확인한다.
+- 변경한 상태에서 Primary action이 하나를 넘지 않고 disabled·pending·error 동작이 안정적이다.
+- interaction이나 의미 구조를 바꿨다면 touch target, 접근성 role과 label이 적절하다.
 - Paseo header를 body 안에서 반복하지 않고 공식 용어를 사용한다.
 - 사용한 token과 runtime module이 대상 `paseo-plugin.d.ts`에 실제로 존재한다.

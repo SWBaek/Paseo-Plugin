@@ -18,7 +18,7 @@
 
 - 플러그인의 클라이언트 UI를 만들거나 변경할 때는 [Paseo Plugin Design Rules](docs/DESIGN.md)를 따른다.
 - 디자인 규칙이 공식 Plugin 문서나 대상 플러그인의 생성된 `paseo-plugin.d.ts`와 충돌하면 공식 문서와 생성 타입을 우선하고, 같은 변경에서 `docs/DESIGN.md`를 갱신한다.
-- UI 검토에서는 wide/compact layout, 밝은/어두운 theme, loading·empty·error·disabled 상태와 접근성을 함께 확인한다.
+- UI 검토는 `docs/DESIGN.md`의 영향 기반 등급을 적용한다. 변경이 영향을 줄 수 있는 layout, theme, 상태와 접근성만 확인하고, 새 화면·공통 UI 구조·공통 theme token 적용·반응형 동작을 바꾼 경우에만 wide/compact와 밝은/어두운 theme를 모두 확인한다.
 
 ## Common Commands
 
@@ -90,6 +90,7 @@ npm run typecheck --workspace paseo-plugin
 
 ## Validation and Runtime Safety
 
+- 문서만 바꾸고 플러그인 소스, 생성 타입, workspace 구조와 설치 상태에 영향을 주지 않은 경우에는 typecheck와 테스트를 요구하지 않는다. 문서의 명령·경로·계약을 바꿨다면 해당 내용의 정적 대조나 필요한 최소 검증은 수행한다.
 - 한 플러그인의 소스 변경은 먼저 `npm run typecheck --workspace <package-name>`으로 검사한다.
 - `branch-garden`의 logic, server, shared 또는 view 동작을 바꾸면 `npm run typecheck --workspace branch-garden`과 `npm test --workspace branch-garden`을 모두 실행한다. Git 명령 변경은 read-only allowlist와 실제 Git 상태 무변경 테스트를 반드시 통과해야 한다.
 - `github-project-board`의 logic, server, shared 또는 view 동작을 바꾸면 `npm run typecheck --workspace github-project-board`와 `npm test --workspace github-project-board`를 모두 실행한다. GitHub CLI 명령 변경은 read-only allowlist 테스트를 반드시 통과해야 한다.
@@ -104,4 +105,4 @@ npm run typecheck --workspace paseo-plugin
 - 플러그인은 신뢰된 비격리 코드다. 데몬의 전역 플러그인 스위치가 꺼져 있거나 없으면 사용자의 명시적 허가 없이 켜지 않는다.
 - 소스 변경을 반영하려고 데몬을 재시작하지 않는다. `paseo plugin reload <runtime-id>`를 사용한다.
 - 백엔드 오류는 `paseo plugin logs <runtime-id>`로 확인하고, 로그에 자격 증명이나 토큰을 남기지 않는다.
-- UI 변경은 가능하면 넓은 화면과 compact 레이아웃, 밝은/어두운 테마에서 확인한다.
+- UI 변경은 `docs/DESIGN.md`의 A~D 등급에 따라 검수한다. 검수 결과에는 등급, 실제로 확인한 환경과 나머지 환경을 생략한 근거를 짧게 남긴다. 영향 여부가 불확실하면 한 단계 높은 등급을 적용한다.
