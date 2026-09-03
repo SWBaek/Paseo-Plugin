@@ -2,18 +2,18 @@
 
 이 문서는 `plugins/*`의 Paseo 클라이언트 UI에 적용하는 저장소 공통 디자인 규칙이다. Paseo 본체의 [Design](https://github.com/getpaseo/paseo/blob/main/docs/design.md)을 플러그인 공개 계약에 맞게 번안했으며, 원문을 그대로 복제하거나 자동 동기화하지 않는다.
 
-마지막 대조일: 2026-09-01
+마지막 대조일: 2026-09-04
 
 ## Rule precedence
 
 규칙이 충돌하면 아래 순서를 따른다.
 
 1. 현재 [Plugin quickstart](https://paseo.sh/docs/plugins)와 [Plugin reference](https://paseo.sh/docs/plugins/reference)
-2. 변경 대상 플러그인의 CLI 생성 `paseo-plugin.d.ts`
+2. 대상 Paseo 버전의 fresh scaffold와 exact `@getpaseo/plugin` package declaration
 3. 이 문서
 4. Paseo 본체의 `docs/design.md`
 
-플러그인 API는 실험 단계다. 공개 문서나 생성 타입이 바뀌어 이 문서가 틀려지면 영향을 받는 UI 변경과 함께 이 문서도 갱신한다. 최신 공식 문서에 토큰이나 컴포넌트가 있더라도 대상 플러그인의 생성 타입에 없으면 사용할 수 있다고 가정하지 않는다.
+플러그인 API는 실험 단계다. 공개 문서나 package declaration이 바뀌어 이 문서가 틀려지면 영향을 받는 UI 변경과 함께 이 문서도 갱신한다. 최신 공식 문서에 토큰이나 컴포넌트가 있더라도 대상 버전의 package declaration에 없으면 사용할 수 있다고 가정하지 않는다.
 
 ## Character
 
@@ -28,10 +28,10 @@ Paseo는 플러그인 surface의 route, 화면 header, 닫기 동작, host picke
 
 - Paseo가 제공하는 화면 제목이나 navigation chrome을 body 안에 반복하지 않는다.
 - `packages/app/...`의 내부 컴포넌트나 토큰을 가져오지 않는다. 본체의 `<Button>`, `<StatusBadge>`, `<SettingsSection>`, `confirmDialog` 같은 이름은 공개 플러그인 API가 아니다.
-- 클라이언트에서는 현재 생성 타입과 Plugin reference가 허용한 runtime module만 가져온다.
+- 클라이언트에서는 대상 버전의 package declaration과 Plugin reference가 허용한 runtime module만 가져온다.
 - 같은 플러그인 안에서 동일한 의미의 UI가 세 곳 이상 쓰이면 공통 컴포넌트로 만든다. 서로 독립적으로 설치되는 플러그인 사이에는 런타임 결합을 만들지 않는다.
 - 기여 icon은 현재 플러그인 계약이 요구하는 Lucide 이름을 사용한다.
-- 현재 기준인 Paseo `0.7.0`의 surface 내부 icon은 `@getpaseo/plugin`이 제공하는 `Icon`을 `*.client.tsx`에서 사용한다. `lucide-react-native`나 `react-native-svg`를 직접 가져오지 않는다.
+- 현재 기준인 Paseo `0.7.2`의 surface 내부 icon은 `@getpaseo/plugin`이 제공하는 `Icon`을 `*.client.tsx`에서 사용한다. `lucide-react-native`나 `react-native-svg`를 직접 가져오지 않는다.
 - 내부 icon은 action이나 상태를 더 빨리 이해하게 하는 경우에만 사용하고, 텍스트 label이나 접근성 설명을 대체하지 않는다.
 
 ## Theme and color
@@ -54,7 +54,7 @@ Paseo는 플러그인 surface의 route, 화면 header, 닫기 동작, host picke
 
 - 모든 `Text`에 색을 지정한다. React Native 기본 글자색에 의존하지 않는다.
 - 검정, 흰색 또는 특정 theme에 맞춘 hex 색상을 UI에 하드코딩하지 않는다. `addTheme`에 전달하는 theme palette는 예외다.
-- 생성 타입에 없는 토큰을 type cast로 우회하거나 이름을 추측하지 않는다.
+- package declaration에 없는 토큰을 type cast로 우회하거나 이름을 추측하지 않는다.
 - `foregroundMuted`에 opacity를 겹쳐 카드·control·divider를 흉내 내지 않는다. 공개된 semantic surface와 border token을 직접 사용한다.
 - 강조색은 한 화면에서 가장 중요한 행동 하나에만 사용한다. 선택 상태와 상태 신호가 많아 강조색이 지배적으로 보이지 않게 한다.
 - Disabled 상태는 의미 색을 바꾸지 말고 바깥 pressable의 opacity로 표현한다.
@@ -119,7 +119,7 @@ Compact 화면을 먼저 설계하고 wide 화면은 같은 정보와 행동에 
 - 일부 데이터만 실패했다면 성공한 데이터는 계속 보여주고 실패한 범위를 따로 설명한다.
 - Loading은 관련 요소 가까이에 표시한다. 기존 내용을 전부 지우고 큰 spinner로 바꾸지 않는다.
 - Empty state는 짧고 직접적으로 쓴다. 설명은 한두 줄을 넘기지 않고, 필요한 복구 행동은 하나만 둔다.
-- 상태 색은 생성 타입에 있는 semantic status token을 사용한다. 임의의 성공·경고·오류 색을 만들지 않는다.
+- 상태 색은 package declaration에 있는 semantic status token을 사용한다. 임의의 성공·경고·오류 색을 만들지 않는다.
 - Placeholder와 비활성 설명은 `foregroundMuted`까지만 낮춘다. 추가 opacity와 italic으로 더 흐리게 만들지 않는다.
 
 ## Copy and terminology
@@ -136,7 +136,7 @@ Compact 화면을 먼저 설계하고 wide 화면은 같은 정보와 행동에 
 
 - Paseo 본체의 `packages/app/...` 내부 import
 - Hardcoded UI color 또는 색이 없는 `Text`
-- 생성 타입에 없는 theme token을 cast로 우회
+- package declaration에 없는 theme token을 cast로 우회
 - 한 화면의 여러 accent-filled CTA
 - 기본값처럼 반복되는 `700`, `800`, `900` font weight
 - 장식 목적의 border, shadow, badge
@@ -174,4 +174,4 @@ UI 변경을 완료하기 전에 변경 등급에 적용되는 항목만 확인�
 - 변경한 상태에서 Primary action이 하나를 넘지 않고 disabled·pending·error 동작이 안정적이다.
 - interaction이나 의미 구조를 바꿨다면 touch target, 접근성 role과 label이 적절하다.
 - Paseo header를 body 안에서 반복하지 않고 공식 용어를 사용한다.
-- 사용한 token과 runtime module이 대상 `paseo-plugin.d.ts`에 실제로 존재한다.
+- 사용한 token과 runtime module이 대상 `@getpaseo/plugin` package declaration에 실제로 존재한다.

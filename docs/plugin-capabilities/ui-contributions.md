@@ -1,6 +1,6 @@
 # UI 기여 지점
 
-이 문서는 Paseo `0.7.0`이 Plugin에 열어 둔 UI 위치를 다룬다. Plugin UI는 React Native component이며 desktop, browser, iOS, Android에서 같은 기여 계약을 사용한다.
+이 문서는 Paseo `0.7.2`가 Plugin에 열어 둔 UI 위치를 다룬다. Plugin UI는 React Native component이며 desktop, browser, iOS, Android에서 같은 기여 계약을 사용한다.
 
 ## 공통 렌더링 계약
 
@@ -305,4 +305,4 @@ Plugin, surface, Sidebar item, panel, Command Center item, attachment source ID�
 - [전체 기능표](README.md)
 - [Backend와 Paseo SDK](backend-and-sdk.md)
 - [지원 경계](limitations.md)
-- [`v0.7.0` 공식 Plugin reference](https://github.com/getpaseo/paseo/blob/v0.7.0/public-docs/plugins/reference.md)
+- [`v0.7.2` 공식 Plugin reference](https://github.com/getpaseo/paseo/blob/v0.7.2/public-docs/plugins/reference.md)

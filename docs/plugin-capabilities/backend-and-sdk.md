@@ -15,7 +15,7 @@ Client module에서 `*.server.ts`를 import하거나 server module에서 `*.clie
 
 ## Host가 제공하는 Client module
 
-Git source 설치는 package manager와 install script를 실행하지 않는다. 다음 module은 Paseo가 client runtime에 제공한다.
+Paseo는 Git source의 lockfile을 보고 package manager나 install script를 자동 실행하지 않는다. Manifest에 명시적인 `build`가 있으면 staged plugin directory에서 해당 argv 명령만 실행한다. 다음 module은 Paseo가 client runtime에 제공한다.
 
 | Module | 용도 |
 | --- | --- |
@@ -57,7 +57,7 @@ Plugin은 connection 생성, reconnect, close를 소유하지 않는다. 각 API
 
 ## `PaseoApi`로 가능한 동작
 
-`v0.7.0` SDK reference의 Plugin용 API 범위는 `projects`, `workspaces`, `agents`, `providers`, `config`다.
+`v0.7.2` SDK reference의 Plugin용 API 범위는 `projects`, `workspaces`, `agents`, `providers`, `config`다.
 
 ### Projects
 
@@ -183,7 +183,7 @@ paseo plugin logs <runtime-id>
 paseo plugin logs <runtime-id> --json
 ```
 
-`0.7.0`은 Plugin별 최근 log를 최대 500개, 256 KiB까지 memory에 유지하고 한 line을 16 KiB로 제한한다. Reload·disable·실패 뒤에도 tail이 남지만 Plugin remove는 지우고 daemon restart는 새 tail을 시작한다. Credential과 token은 log에 남기지 않는다.
+`0.7.2`는 Plugin별 최근 log를 최대 500개, 256 KiB까지 memory에 유지하고 한 line을 16 KiB로 제한한다. Reload·disable·실패 뒤에도 tail이 남지만 Plugin remove는 지우고 daemon restart는 새 tail을 시작한다. Credential과 token은 log에 남기지 않는다.
 
 ## 전용 Storage의 부재
 
@@ -199,4 +199,4 @@ paseo plugin logs <runtime-id> --json
 - [전체 기능표](README.md)
 - [UI 기여 지점](ui-contributions.md)
 - [지원 경계](limitations.md)
-- [`v0.7.0` SDK API reference](https://github.com/getpaseo/paseo/blob/v0.7.0/public-docs/sdk/reference.md)
+- [`v0.7.2` SDK API reference](https://github.com/getpaseo/paseo/blob/v0.7.2/public-docs/sdk/reference.md)

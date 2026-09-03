@@ -1,6 +1,6 @@
 # 지원 경계
 
-이 문서는 “화면에서 보이게 만들 수 있다”와 “Paseo가 그 위치를 정식 Plugin slot으로 공개했다”를 구분한다. 기준은 Paseo `0.7.0` CLI가 새로 생성한 공개 type contract다.
+이 문서는 “화면에서 보이게 만들 수 있다”와 “Paseo가 그 위치를 정식 Plugin slot으로 공개했다”를 구분한다. 기준은 Paseo `0.7.2` CLI의 fresh scaffold와 exact `@getpaseo/plugin` package declaration이다.
 
 ## 판정 기준
 
@@ -100,9 +100,9 @@
 
 현재 배포된 [Plugin reference](https://paseo.sh/docs/plugins/reference)는 설치된 Paseo와 다른 시점의 기능을 설명할 수 있다. 대상 버전의 tag 문서와 fresh scaffold에 없는 field나 hook은 사용하지 않는다.
 
-이 저장소의 `plugins/*/paseo-plugin.d.ts`는 `0.7.0` fresh scaffold와 동기화되어 있다. 이후 Paseo를 업데이트할 때도 기존 선언만 보고 기능 범위를 판단하거나 생성 파일을 손으로 임의 확장하지 말고, 새 CLI가 생성한 계약과 다시 비교한다.
+이 저장소의 모든 workspace는 exact `@getpaseo/plugin@0.7.2` package declaration과 동기화되어 있다. 이후 Paseo를 업데이트할 때도 기존 설치 package만 보고 기능 범위를 판단하거나 ambient declaration을 손으로 임의 확장하지 말고, 새 CLI의 fresh scaffold와 exact package declaration을 다시 비교한다.
 
-`v0.7.0` tag의 Plugin reference에는 general host navigation이 없다는 이전 문장이 남아 있다. 같은 문서의 Surface 계약, Plugin guide와 fresh scaffold를 함께 보면 이는 임의 route용 범용 API가 없다는 제한이며, `openAgent`와 `openWorkspace`는 공개된 예외다.
+`v0.7.2` tag의 Plugin reference에는 general host navigation이 없다는 이전 문장이 남아 있다. 같은 문서의 Surface 계약, Plugin guide와 package declaration을 함께 보면 이는 임의 route용 범용 API가 없다는 제한이며, `openAgent`와 `openWorkspace`는 공개된 예외다.
 
 ## 관련 문서
 
@@ -110,4 +110,4 @@
 - [전체 기능표](README.md)
 - [UI 기여 지점](ui-contributions.md)
 - [Backend와 Paseo SDK](backend-and-sdk.md)
-- [`v0.7.0` Plugin reference](https://github.com/getpaseo/paseo/blob/v0.7.0/public-docs/plugins/reference.md)
+- [`v0.7.2` Plugin reference](https://github.com/getpaseo/paseo/blob/v0.7.2/public-docs/plugins/reference.md)
