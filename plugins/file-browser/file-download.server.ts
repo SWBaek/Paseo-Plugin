@@ -6,19 +6,40 @@ import {
   FILE_DOWNLOAD_TOKEN_TTL_MS,
 } from "./file-browser.shared";
 import {
+  openFileBrowserArchiveEntry,
   openFileBrowserDownload,
+  prepareFileBrowserDirectoryDownload,
+  revalidateFileBrowserDirectoryDownload,
+  type DownloadDirectoryEntry,
+  type DownloadDirectoryManifest,
   type OpenedDownloadFile,
 } from "./file-browser.server";
+import { streamZipArchive } from "./zip-archive.server";
 
 export const FILE_DOWNLOAD_HOST = "127.0.0.1";
 export const FILE_DOWNLOAD_PORT = 9292;
 
-interface DownloadTarget {
+interface DownloadTargetBase {
+  kind: "file" | "directory";
   rootId: string;
   segments: string[];
   expiresAt: number;
   timeout: NodeJS.Timeout;
 }
+
+interface FileDownloadTarget extends DownloadTargetBase {
+  kind: "file";
+}
+
+interface DirectoryDownloadTarget extends DownloadTargetBase {
+  kind: "directory";
+  manifest: DownloadDirectoryManifest;
+}
+
+type DownloadTarget = FileDownloadTarget | DirectoryDownloadTarget;
+type PreparedDownloadTarget =
+  | Omit<FileDownloadTarget, "expiresAt" | "timeout">
+  | Omit<DirectoryDownloadTarget, "expiresAt" | "timeout">;
 
 interface TailscaleStatus {
   BackendState?: string;
@@ -37,6 +58,18 @@ export interface FileDownloadServerOptions {
   now?: () => number;
   createToken?: () => string;
   openFile: (input: { rootId: string; segments: string[] }) => Promise<OpenedDownloadFile>;
+  prepareDirectory?: (input: {
+    rootId: string;
+    segments: string[];
+  }) => Promise<DownloadDirectoryManifest>;
+  revalidateDirectory?: (
+    manifest: DownloadDirectoryManifest,
+  ) => Promise<DownloadDirectoryManifest>;
+  openArchiveFile?: (
+    manifest: DownloadDirectoryManifest,
+    entry: DownloadDirectoryEntry,
+  ) => Promise<OpenedDownloadFile>;
+  streamArchive?: typeof streamZipArchive;
   resolvePublicBaseUrl: () => Promise<string>;
   requireTailscaleIdentity?: boolean;
   platform?: NodeJS.Platform;
@@ -113,10 +146,12 @@ export function createFileDownloadServer(options: FileDownloadServerOptions) {
   const createToken = options.createToken ?? (() => randomBytes(32).toString("base64url"));
   const requireTailscaleIdentity = options.requireTailscaleIdentity ?? true;
   const platform = options.platform ?? process.platform;
+  const streamArchive = options.streamArchive ?? streamZipArchive;
   const targets = new Map<string, DownloadTarget>();
   let server: Server | null = null;
   let startPromise: Promise<void> | null = null;
   let activeTransfers = 0;
+  let activeArchiveTransfers = 0;
   let idleTimer: NodeJS.Timeout | null = null;
 
   async function ensureStarted(): Promise<void> {
@@ -179,20 +214,15 @@ export function createFileDownloadServer(options: FileDownloadServerOptions) {
     idleTimer.unref();
   }
 
-  async function issueDownload(input: {
-    rootId: string;
-    segments: string[];
-  }): Promise<{ url: string; expiresAt: string }> {
+  function requireWindows(): void {
     if (platform !== "win32") {
       throw publicError("파일 다운로드는 Windows daemon에서만 사용할 수 있습니다.");
     }
+  }
 
-    const verified = await options.openFile({
-      rootId: input.rootId,
-      segments: [...input.segments],
-    });
-    await verified.handle.close();
-
+  async function registerDownload(
+    target: PreparedDownloadTarget,
+  ): Promise<{ url: string; expiresAt: string }> {
     let baseUrl: string;
     try {
       const parsed = new URL(await options.resolvePublicBaseUrl());
@@ -220,15 +250,51 @@ export function createFileDownloadServer(options: FileDownloadServerOptions) {
     }, ttlMs);
     timeout.unref();
     targets.set(token, {
-      rootId: input.rootId,
-      segments: [...input.segments],
+      ...target,
       expiresAt,
       timeout,
-    });
+    } as DownloadTarget);
     return {
       url: `${baseUrl}/download/${token}`,
       expiresAt: new Date(expiresAt).toISOString(),
     };
+  }
+
+  async function issueDownload(input: {
+    rootId: string;
+    segments: string[];
+  }): Promise<{ url: string; expiresAt: string }> {
+    requireWindows();
+    const verified = await options.openFile({
+      rootId: input.rootId,
+      segments: [...input.segments],
+    });
+    await verified.handle.close();
+    return registerDownload({
+      kind: "file",
+      rootId: input.rootId,
+      segments: [...input.segments],
+    });
+  }
+
+  async function issueDirectoryDownload(input: {
+    rootId: string;
+    segments: string[];
+  }): Promise<{ url: string; expiresAt: string }> {
+    requireWindows();
+    if (!options.prepareDirectory || !options.revalidateDirectory || !options.openArchiveFile) {
+      throw publicError("폴더 다운로드를 사용할 수 없습니다.");
+    }
+    const manifest = await options.prepareDirectory({
+      rootId: input.rootId,
+      segments: [...input.segments],
+    });
+    return registerDownload({
+      kind: "directory",
+      rootId: input.rootId,
+      segments: [...input.segments],
+      manifest,
+    });
   }
 
   async function handleRequest(request: IncomingMessage, response: ServerResponse): Promise<void> {
@@ -261,9 +327,58 @@ export function createFileDownloadServer(options: FileDownloadServerOptions) {
       return;
     }
 
-    const target = request.method === "GET" ? removeToken(token) : candidate;
+    const isGet = request.method === "GET";
+    if (isGet && candidate.kind === "directory" && activeArchiveTransfers !== 0) {
+      sendText(response, 409, "다른 폴더 ZIP 다운로드가 진행 중입니다. 완료 후 다시 시도하세요.");
+      return;
+    }
+
+    const target = isGet ? removeToken(token) : candidate;
     if (!target) {
       sendText(response, 410, "다운로드 주소가 만료되었거나 이미 사용되었습니다.");
+      return;
+    }
+
+    let finished = false;
+    const finish = () => {
+      if (finished || !isGet) return;
+      finished = true;
+      activeTransfers -= 1;
+      if (target.kind === "directory") activeArchiveTransfers -= 1;
+      stopIfIdle();
+    };
+    if (isGet) {
+      activeTransfers += 1;
+      if (target.kind === "directory") activeArchiveTransfers += 1;
+    }
+
+    if (target.kind === "directory") {
+      try {
+        const manifest = await options.revalidateDirectory!(target.manifest);
+        response.setHeader("Cache-Control", "no-store");
+        response.setHeader("Content-Disposition", attachmentDisposition(`${manifest.name}.zip`));
+        response.setHeader("Content-Security-Policy", "default-src 'none'");
+        response.setHeader("Content-Type", "application/zip");
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        if (!isGet) {
+          response.writeHead(200);
+          response.end();
+          return;
+        }
+
+        response.writeHead(200);
+        await streamArchive({
+          entries: manifest.entries,
+          destination: response,
+          openFile: (entry) =>
+            options.openArchiveFile!(manifest, entry as DownloadDirectoryEntry),
+        });
+        response.end();
+      } catch {
+        sendText(response, 404, "폴더를 더 이상 다운로드할 수 없습니다. 다시 시도하세요.");
+      } finally {
+        finish();
+      }
       return;
     }
 
@@ -274,6 +389,7 @@ export function createFileDownloadServer(options: FileDownloadServerOptions) {
         segments: [...target.segments],
       });
     } catch {
+      finish();
       stopIfIdle();
       sendText(response, 404, "파일을 더 이상 다운로드할 수 없습니다.");
       return;
@@ -285,22 +401,14 @@ export function createFileDownloadServer(options: FileDownloadServerOptions) {
     response.setHeader("Content-Security-Policy", "default-src 'none'");
     response.setHeader("Content-Type", "application/octet-stream");
     response.setHeader("X-Content-Type-Options", "nosniff");
-    if (request.method === "HEAD") {
+    if (!isGet) {
       await opened.handle.close();
       response.writeHead(200);
       response.end();
       return;
     }
 
-    activeTransfers += 1;
     const stream = opened.handle.createReadStream({ autoClose: true });
-    let finished = false;
-    const finish = () => {
-      if (finished) return;
-      finished = true;
-      activeTransfers -= 1;
-      stopIfIdle();
-    };
     response.on("close", () => {
       stream.destroy();
       finish();
@@ -334,11 +442,14 @@ export function createFileDownloadServer(options: FileDownloadServerOptions) {
       : null;
   }
 
-  return { issueDownload, localAddress, stop };
+  return { issueDownload, issueDirectoryDownload, localAddress, stop };
 }
 
 const defaultFileDownloadServer = createFileDownloadServer({
   openFile: openFileBrowserDownload,
+  prepareDirectory: prepareFileBrowserDirectoryDownload,
+  revalidateDirectory: revalidateFileBrowserDirectoryDownload,
+  openArchiveFile: openFileBrowserArchiveEntry,
   resolvePublicBaseUrl: () => resolveTailscaleDownloadBaseUrl(),
 });
 
@@ -347,6 +458,13 @@ export function createFileBrowserDownload(input: {
   segments: string[];
 }) {
   return defaultFileDownloadServer.issueDownload(input);
+}
+
+export function createFileBrowserDirectoryDownload(input: {
+  rootId: string;
+  segments: string[];
+}) {
+  return defaultFileDownloadServer.issueDirectoryDownload(input);
 }
 
 export function stopFileBrowserDownloads() {

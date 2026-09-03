@@ -1,11 +1,13 @@
 import type { PluginContext } from "@getpaseo/plugin";
 import {
   fileBrowserCreateDownload,
+  fileBrowserCreateDirectoryDownload,
   fileBrowserListDirectory,
   fileBrowserListRoots,
   fileBrowserPreviewFile,
 } from "./file-browser.shared";
 import {
+  createFileBrowserDirectoryDownload,
   createFileBrowserDownload,
   stopFileBrowserDownloads,
 } from "./file-download.server";
@@ -21,6 +23,9 @@ export default function contribute(plugin: PluginContext) {
   plugin.handle(fileBrowserListDirectory, (input) => listFileBrowserDirectory(input));
   plugin.handle(fileBrowserPreviewFile, (input) => previewFileBrowserFile(input));
   plugin.handle(fileBrowserCreateDownload, (input) => createFileBrowserDownload(input));
+  plugin.handle(fileBrowserCreateDirectoryDownload, (input) =>
+    createFileBrowserDirectoryDownload(input),
+  );
   plugin.addSurface("main", MainSurface);
   plugin.addSidebarItem({
     id: "main",

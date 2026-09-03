@@ -4,6 +4,9 @@ import { z } from "zod";
 export const FILE_BROWSER_PAGE_SIZE = 200;
 export const FILE_PREVIEW_LIMIT_BYTES = 64 * 1024;
 export const FILE_DOWNLOAD_TOKEN_TTL_MS = 60 * 1000;
+export const DIRECTORY_DOWNLOAD_MAX_ENTRIES = 10_000;
+export const DIRECTORY_DOWNLOAD_MAX_BYTES = 2 * 1024 * 1024 * 1024;
+export const DIRECTORY_DOWNLOAD_MAX_DEPTH = 64;
 
 export const PathSegmentsSchema = z.array(z.string().min(1).max(255)).max(128);
 export const EntryKindSchema = z.enum(["directory", "file", "link", "other"]);
@@ -70,6 +73,18 @@ export const fileBrowserPreviewFile = defineRpc({
 
 export const fileBrowserCreateDownload = defineRpc({
   name: "file-browser.file.download.create",
+  input: z.object({
+    rootId: z.string().min(1).max(64),
+    segments: PathSegmentsSchema.min(1),
+  }),
+  output: z.object({
+    url: z.string().url(),
+    expiresAt: z.string().datetime(),
+  }),
+});
+
+export const fileBrowserCreateDirectoryDownload = defineRpc({
+  name: "file-browser.directory.download.create",
   input: z.object({
     rootId: z.string().min(1).max(64),
     segments: PathSegmentsSchema.min(1),

@@ -201,6 +201,68 @@ describe("file-browser server", () => {
     expect(isSensitiveFileName("README.md")).toBe(false);
   });
 
+  it("prepares a bounded manifest with a containing root and empty directories", async () => {
+    await mkdir(path.join(root, "bundle", "빈 폴더"), { recursive: true });
+    await writeFile(path.join(root, "bundle", "문서.txt"), "content", "utf8");
+
+    const manifest = await service().prepareDownloadDirectory({
+      rootId: "projects",
+      segments: ["bundle"],
+    });
+
+    expect(manifest.name).toBe("bundle");
+    expect(manifest.totalSizeBytes).toBe(7);
+    expect(manifest.entries.map(({ kind, archivePath }) => ({ kind, archivePath }))).toEqual([
+      { kind: "directory", archivePath: "bundle" },
+      { kind: "directory", archivePath: "bundle/빈 폴더" },
+      { kind: "file", archivePath: "bundle/문서.txt" },
+    ]);
+  });
+
+  it("refuses the allowlisted root and junctions for directory downloads", async () => {
+    await mkdir(path.join(root, "bundle"));
+    await symlink(outside, path.join(root, "bundle", "outside-link"), "junction");
+    const browser = service();
+
+    await expect(
+      browser.prepareDownloadDirectory({ rootId: "projects", segments: [] }),
+    ).rejects.toThrow("루트 전체는 다운로드할 수 없습니다");
+    await expect(
+      browser.prepareDownloadDirectory({ rootId: "projects", segments: ["bundle"] }),
+    ).rejects.toThrow("링크와 junction이 포함된 폴더는 다운로드할 수 없습니다");
+  });
+
+  it("enforces directory entry, byte, and depth limits", async () => {
+    await mkdir(path.join(root, "bundle", "nested"), { recursive: true });
+    await writeFile(path.join(root, "bundle", "nested", "data.bin"), "1234", "utf8");
+
+    const entriesLimited = createFileBrowserService({
+      platform: "win32",
+      roots: [{ id: "projects", label: "Projects", path: root }],
+      directoryDownloadLimits: { maxEntries: 1 },
+    });
+    const bytesLimited = createFileBrowserService({
+      platform: "win32",
+      roots: [{ id: "projects", label: "Projects", path: root }],
+      directoryDownloadLimits: { maxBytes: 3 },
+    });
+    const depthLimited = createFileBrowserService({
+      platform: "win32",
+      roots: [{ id: "projects", label: "Projects", path: root }],
+      directoryDownloadLimits: { maxDepth: 1 },
+    });
+
+    await expect(
+      entriesLimited.prepareDownloadDirectory({ rootId: "projects", segments: ["bundle"] }),
+    ).rejects.toThrow("최대 1개");
+    await expect(
+      bytesLimited.prepareDownloadDirectory({ rootId: "projects", segments: ["bundle"] }),
+    ).rejects.toThrow("최대 2 GiB");
+    await expect(
+      depthLimited.prepareDownloadDirectory({ rootId: "projects", segments: ["bundle"] }),
+    ).rejects.toThrow("최대 1단계");
+  });
+
   it("refuses to run on non-Windows daemons", async () => {
     const browser = createFileBrowserService({
       platform: "linux",

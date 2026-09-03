@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   fileBrowserCreateDownload,
+  fileBrowserCreateDirectoryDownload,
   fileBrowserListDirectory,
   fileBrowserListRoots,
   fileBrowserPreviewFile,
@@ -19,7 +20,9 @@ import {
 const ROOT_ID = "projects";
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "요청을 완료하지 못했습니다.";
+  if (!(error instanceof Error)) return "요청을 완료하지 못했습니다.";
+  const rpcMessage = /^Request failed:\s*(.*?)\s+requestType=/.exec(error.message)?.[1];
+  return rpcMessage || error.message;
 }
 
 function iconFor(entry: DirectoryEntry): string {
@@ -113,6 +116,24 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       fontSize: 13,
       fontWeight: "600",
     },
+    folderDownloadButton: {
+      minWidth: compact ? 72 : 150,
+      minHeight: 40,
+      paddingHorizontal: compact ? 8 : 12,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      borderWidth: 1,
+      borderColor: theme.colors.border,
+      borderRadius: 8,
+      backgroundColor: theme.colors.surface2,
+    },
+    folderDownloadButtonText: {
+      color: theme.colors.foreground,
+      fontSize: 12,
+      fontWeight: "500",
+    },
     actionError: {
       paddingHorizontal: 16,
       paddingVertical: 8,
@@ -187,6 +208,7 @@ export function MainSurface({ theme, host, layout }: PluginSurfaceProps) {
   const listDirectory = useRpc(fileBrowserListDirectory);
   const previewFile = useRpc(fileBrowserPreviewFile);
   const createDownload = useRpc(fileBrowserCreateDownload);
+  const createDirectoryDownload = useRpc(fileBrowserCreateDirectoryDownload);
   const [location, setLocation] = useState({ hostId: host.id, segments: [] as string[] });
   const [selection, setSelection] = useState<{ hostId: string; entry: DirectoryEntry } | null>(null);
 
@@ -200,11 +222,19 @@ export function MainSurface({ theme, host, layout }: PluginSurfaceProps) {
       return download;
     },
   });
+  const directoryDownloadMutation = useMutation({
+    mutationFn: async (input: { rootId: string; segments: string[] }) => {
+      const download = await createDirectoryDownload(input);
+      await Linking.openURL(download.url);
+      return download;
+    },
+  });
 
   useEffect(() => {
     setLocation({ hostId: host.id, segments: [] });
     setSelection(null);
     downloadMutation.reset();
+    directoryDownloadMutation.reset();
     // The mutation object is stable; only a Host change should reset surface state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [host.id]);
@@ -246,6 +276,7 @@ export function MainSurface({ theme, host, layout }: PluginSurfaceProps) {
     setLocation({ hostId: host.id, segments: nextSegments });
     setSelection(null);
     downloadMutation.reset();
+    directoryDownloadMutation.reset();
   }
 
   function chooseEntry(entry: DirectoryEntry) {
@@ -292,6 +323,49 @@ export function MainSurface({ theme, host, layout }: PluginSurfaceProps) {
     return (
       <View style={styles.actionError} accessibilityLiveRegion="polite">
         <Text style={styles.actionErrorText}>{errorMessage(downloadMutation.error)}</Text>
+      </View>
+    );
+  }
+
+  function startDirectoryDownload() {
+    if (segments.length === 0 || directoryDownloadMutation.isPending) return;
+    directoryDownloadMutation.mutate({ rootId: ROOT_ID, segments: [...segments] });
+  }
+
+  function renderDirectoryDownloadButton() {
+    if (segments.length === 0) return null;
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="현재 폴더 ZIP 다운로드"
+        accessibilityState={{
+          busy: directoryDownloadMutation.isPending,
+          disabled: directoryDownloadMutation.isPending,
+        }}
+        disabled={directoryDownloadMutation.isPending}
+        onPress={startDirectoryDownload}
+        style={[
+          styles.folderDownloadButton,
+          directoryDownloadMutation.isPending && styles.disabled,
+        ]}
+      >
+        <Icon name="Archive" size={16} color={theme.colors.foreground} />
+        <Text style={styles.folderDownloadButtonText}>
+          {directoryDownloadMutation.isPending
+            ? layout.compact ? "확인 중" : "폴더 확인 중"
+            : layout.compact ? "폴더 ZIP" : "현재 폴더 ZIP"}
+        </Text>
+      </Pressable>
+    );
+  }
+
+  function renderDirectoryDownloadError() {
+    if (!directoryDownloadMutation.isError) return null;
+    return (
+      <View style={styles.actionError} accessibilityLiveRegion="polite">
+        <Text style={styles.actionErrorText}>
+          {errorMessage(directoryDownloadMutation.error)}
+        </Text>
       </View>
     );
   }
@@ -467,7 +541,10 @@ export function MainSurface({ theme, host, layout }: PluginSurfaceProps) {
               ) : null}
               <Text style={styles.panelTitle}>폴더 내용</Text>
               <Text style={styles.panelMeta}>{entries.length}개 표시</Text>
+              {renderDirectoryDownloadButton()}
             </View>
+
+            {renderDirectoryDownloadError()}
 
             {directoryQuery.isPending ? (
               <View style={styles.state}>
