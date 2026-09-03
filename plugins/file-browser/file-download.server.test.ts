@@ -125,6 +125,7 @@ describe("file download server", () => {
       createToken: () => `abcdefghijklmnopqrstuvwxyzABCDEFGH${String(tokenNumber++).padStart(8, "0")}`,
       openFile: browser.openDownloadFile,
       prepareDirectory: browser.prepareDownloadDirectory,
+      prepareSelection: browser.prepareDownloadSelection,
       revalidateDirectory: browser.revalidateDownloadDirectory,
       openArchiveFile: browser.openDownloadArchiveFile,
       resolvePublicBaseUrl: async () => "https://files.example.test:9292",
@@ -245,6 +246,54 @@ describe("file download server", () => {
     ]);
     expect(entries.get("묶음/안내.txt")?.toString("utf8")).toBe("안녕하세요");
     expect(entries.get("묶음/nested/data.json")?.toString("utf8")).toBe('{"ok":true}');
+  });
+
+  it("streams selected sibling files and folders as one filtered ZIP", async () => {
+    await mkdir(path.join(root, "project", "node_modules"), { recursive: true });
+    await writeFile(path.join(root, "project", "source.ts"), "source", "utf8");
+    await writeFile(path.join(root, "project", "node_modules", "dependency.js"), "noise", "utf8");
+    await writeFile(path.join(root, "notes.txt"), "notes", "utf8");
+    const download = server();
+
+    const issued = await download.issueSelectionDownload({
+      rootId: "projects",
+      segments: [],
+      names: ["project", "notes.txt"],
+    });
+    const url = new URL(issued.url);
+    const response = await localRequest(download.localAddress()!.port, url.pathname);
+
+    expect(response.status).toBe(200);
+    expect(response.headers["content-type"]).toBe("application/zip");
+    expect(response.headers["content-disposition"]).toContain(
+      encodeURIComponent("Projects-selection.zip"),
+    );
+    const entries = readZipEntries(response.body);
+    expect([...entries.keys()]).toEqual([
+      "notes.txt",
+      "project/",
+      "project/source.ts",
+    ]);
+    expect(entries.get("notes.txt")?.toString("utf8")).toBe("notes");
+    expect(entries.has("project/node_modules/dependency.js")).toBe(false);
+  });
+
+  it("revalidates selected content before streaming", async () => {
+    await mkdir(path.join(root, "project"));
+    await writeFile(path.join(root, "project", "before.txt"), "before", "utf8");
+    await writeFile(path.join(root, "notes.txt"), "notes", "utf8");
+    const download = server();
+    const issued = await download.issueSelectionDownload({
+      rootId: "projects",
+      segments: [],
+      names: ["project", "notes.txt"],
+    });
+    const url = new URL(issued.url);
+    const port = download.localAddress()!.port;
+    await writeFile(path.join(root, "project", "after.txt"), "after", "utf8");
+
+    expect((await localRequest(port, url.pathname)).status).toBe(404);
+    expect((await localRequest(port, url.pathname)).status).toBe(410);
   });
 
   it("rejects a directory with sensitive content before issuing a URL", async () => {

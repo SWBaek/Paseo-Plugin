@@ -3,8 +3,10 @@ import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useState } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
+  ARCHIVE_SELECTION_MAX_ITEMS,
   fileBrowserCreateDownload,
   fileBrowserCreateDirectoryDownload,
+  fileBrowserCreateSelectionDownload,
   fileBrowserListDirectory,
   fileBrowserListRoots,
   fileBrowserPreviewFile,
@@ -33,7 +35,9 @@ function iconFor(entry: DirectoryEntry): string {
 }
 
 function kindLabel(entry: DirectoryEntry): string {
-  if (entry.kind === "directory") return "폴더";
+  if (entry.kind === "directory") {
+    return entry.archiveStatus === "excluded" ? "폴더 · ZIP 기본 제외" : "폴더";
+  }
   if (entry.kind === "link") return "링크 · 열 수 없음";
   if (entry.kind === "other") return "지원하지 않는 항목";
   if (entry.previewStatus === "sensitive") return "민감 파일 · 접근 차단";
@@ -134,6 +138,46 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       fontSize: 12,
       fontWeight: "500",
     },
+    selectionBar: {
+      minHeight: 52,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.border,
+      backgroundColor: theme.colors.surface2,
+    },
+    selectionSummary: {
+      flex: 1,
+      color: theme.colors.foreground,
+      fontSize: 12,
+      fontWeight: "500",
+    },
+    clearSelectionButton: {
+      minHeight: 40,
+      paddingHorizontal: compact ? 8 : 12,
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 8,
+    },
+    clearSelectionText: { color: theme.colors.foreground, fontSize: 12, fontWeight: "500" },
+    selectionDownloadButton: {
+      minHeight: 40,
+      paddingHorizontal: compact ? 10 : 12,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      borderRadius: 8,
+      backgroundColor: theme.colors.accent,
+    },
+    selectionDownloadText: {
+      color: theme.colors.accentForeground,
+      fontSize: 12,
+      fontWeight: "600",
+    },
     actionError: {
       paddingHorizontal: 16,
       paddingVertical: 8,
@@ -152,6 +196,22 @@ function createStyles(theme: PluginTheme, compact: boolean) {
       gap: 12,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: theme.colors.border,
+    },
+    selectionToggle: {
+      width: 44,
+      height: 44,
+      marginVertical: -4,
+      marginLeft: -12,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    rowAction: {
+      flex: 1,
+      minWidth: 0,
+      minHeight: 44,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
     },
     selectedRow: { backgroundColor: theme.colors.surface2 },
     rowCopy: { flex: 1, minWidth: 0, gap: 2 },
@@ -209,11 +269,23 @@ export function MainSurface({ theme, host, layout }: PluginSurfaceProps) {
   const previewFile = useRpc(fileBrowserPreviewFile);
   const createDownload = useRpc(fileBrowserCreateDownload);
   const createDirectoryDownload = useRpc(fileBrowserCreateDirectoryDownload);
+  const createSelectionDownload = useRpc(fileBrowserCreateSelectionDownload);
   const [location, setLocation] = useState({ hostId: host.id, segments: [] as string[] });
   const [selection, setSelection] = useState<{ hostId: string; entry: DirectoryEntry } | null>(null);
+  const [archiveSelection, setArchiveSelection] = useState<{
+    hostId: string;
+    pathKey: string;
+    names: string[];
+  } | null>(null);
 
   const segments = location.hostId === host.id ? location.segments : [];
   const selectedEntry = selection?.hostId === host.id ? selection.entry : null;
+  const pathKey = segments.join("\0");
+  const selectedNames =
+    archiveSelection?.hostId === host.id && archiveSelection.pathKey === pathKey
+      ? archiveSelection.names
+      : [];
+  const selectedNameSet = useMemo(() => new Set(selectedNames), [selectedNames]);
 
   const downloadMutation = useMutation({
     mutationFn: async (input: { rootId: string; segments: string[] }) => {
@@ -229,12 +301,35 @@ export function MainSurface({ theme, host, layout }: PluginSurfaceProps) {
       return download;
     },
   });
+  const selectionDownloadMutation = useMutation({
+    mutationFn: async (input: {
+      rootId: string;
+      segments: string[];
+      names: string[];
+      singleFile: boolean;
+    }) => {
+      const download = input.singleFile
+        ? await createDownload({
+            rootId: input.rootId,
+            segments: [...input.segments, input.names[0]!],
+          })
+        : await createSelectionDownload({
+            rootId: input.rootId,
+            segments: input.segments,
+            names: input.names,
+          });
+      await Linking.openURL(download.url);
+      return download;
+    },
+  });
 
   useEffect(() => {
     setLocation({ hostId: host.id, segments: [] });
     setSelection(null);
+    setArchiveSelection(null);
     downloadMutation.reset();
     directoryDownloadMutation.reset();
+    selectionDownloadMutation.reset();
     // The mutation object is stable; only a Host change should reset surface state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [host.id]);
@@ -275,8 +370,10 @@ export function MainSurface({ theme, host, layout }: PluginSurfaceProps) {
   function navigate(nextSegments: string[]) {
     setLocation({ hostId: host.id, segments: nextSegments });
     setSelection(null);
+    setArchiveSelection(null);
     downloadMutation.reset();
     directoryDownloadMutation.reset();
+    selectionDownloadMutation.reset();
   }
 
   function chooseEntry(entry: DirectoryEntry) {
@@ -297,7 +394,7 @@ export function MainSurface({ theme, host, layout }: PluginSurfaceProps) {
   }
 
   function renderDownloadButton() {
-    if (!selectedEntry) return null;
+    if (!selectedEntry || selectedNames.length > 0) return null;
     return (
       <Pressable
         accessibilityRole="button"
@@ -328,7 +425,11 @@ export function MainSurface({ theme, host, layout }: PluginSurfaceProps) {
   }
 
   function startDirectoryDownload() {
-    if (segments.length === 0 || directoryDownloadMutation.isPending) return;
+    if (
+      segments.length === 0 ||
+      directoryDownloadMutation.isPending ||
+      selectionDownloadMutation.isPending
+    ) return;
     directoryDownloadMutation.mutate({ rootId: ROOT_ID, segments: [...segments] });
   }
 
@@ -340,13 +441,15 @@ export function MainSurface({ theme, host, layout }: PluginSurfaceProps) {
         accessibilityLabel="현재 폴더 ZIP 다운로드"
         accessibilityState={{
           busy: directoryDownloadMutation.isPending,
-          disabled: directoryDownloadMutation.isPending,
+          disabled:
+            directoryDownloadMutation.isPending || selectionDownloadMutation.isPending,
         }}
-        disabled={directoryDownloadMutation.isPending}
+        disabled={directoryDownloadMutation.isPending || selectionDownloadMutation.isPending}
         onPress={startDirectoryDownload}
         style={[
           styles.folderDownloadButton,
-          directoryDownloadMutation.isPending && styles.disabled,
+          (directoryDownloadMutation.isPending || selectionDownloadMutation.isPending) &&
+            styles.disabled,
         ]}
       >
         <Icon name="Archive" size={16} color={theme.colors.foreground} />
@@ -365,6 +468,103 @@ export function MainSurface({ theme, host, layout }: PluginSurfaceProps) {
       <View style={styles.actionError} accessibilityLiveRegion="polite">
         <Text style={styles.actionErrorText}>
           {errorMessage(directoryDownloadMutation.error)}
+        </Text>
+      </View>
+    );
+  }
+
+  function toggleArchiveSelection(entry: DirectoryEntry) {
+    if (
+      entry.archiveStatus !== "available" ||
+      (entry.kind !== "directory" && entry.kind !== "file") ||
+      selectionDownloadMutation.isPending
+    ) return;
+    const alreadySelected = selectedNameSet.has(entry.name);
+    if (!alreadySelected && selectedNames.length >= ARCHIVE_SELECTION_MAX_ITEMS) return;
+    const names = alreadySelected
+      ? selectedNames.filter((name) => name !== entry.name)
+      : [...selectedNames, entry.name];
+    setArchiveSelection(
+      names.length > 0 ? { hostId: host.id, pathKey, names } : null,
+    );
+    selectionDownloadMutation.reset();
+  }
+
+  function clearArchiveSelection() {
+    setArchiveSelection(null);
+    selectionDownloadMutation.reset();
+  }
+
+  function startSelectionDownload() {
+    if (
+      selectedNames.length === 0 ||
+      selectionDownloadMutation.isPending ||
+      directoryDownloadMutation.isPending
+    ) return;
+    const onlyEntry =
+      selectedNames.length === 1
+        ? entries.find((entry) => entry.name === selectedNames[0])
+        : undefined;
+    selectionDownloadMutation.mutate({
+      rootId: ROOT_ID,
+      segments: [...segments],
+      names: [...selectedNames],
+      singleFile: onlyEntry?.kind === "file",
+    });
+  }
+
+  function renderSelectionBar() {
+    if (selectedNames.length === 0) return null;
+    const onlyEntry =
+      selectedNames.length === 1
+        ? entries.find((entry) => entry.name === selectedNames[0])
+        : undefined;
+    const singleFile = onlyEntry?.kind === "file";
+    const pending = selectionDownloadMutation.isPending;
+    const disabled = pending || directoryDownloadMutation.isPending;
+    return (
+      <View style={styles.selectionBar}>
+        <Text style={styles.selectionSummary} numberOfLines={1}>
+          {selectedNames.length}개 선택
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="다운로드 선택 모두 해제"
+          disabled={pending}
+          onPress={clearArchiveSelection}
+          style={[styles.clearSelectionButton, pending && styles.disabled]}
+        >
+          <Text style={styles.clearSelectionText}>선택 해제</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={singleFile ? "선택한 파일 다운로드" : "선택한 항목 ZIP 다운로드"}
+          accessibilityState={{ busy: pending, disabled }}
+          disabled={disabled}
+          onPress={startSelectionDownload}
+          style={[styles.selectionDownloadButton, disabled && styles.disabled]}
+        >
+          <Icon name={singleFile ? "Download" : "Archive"} size={16} color={theme.colors.accentForeground} />
+          <Text style={styles.selectionDownloadText}>
+            {pending
+              ? "준비 중"
+              : layout.compact
+                ? "다운로드"
+                : singleFile
+                  ? "파일 다운로드"
+                  : "ZIP 다운로드"}
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  function renderSelectionDownloadError() {
+    if (!selectionDownloadMutation.isError) return null;
+    return (
+      <View style={styles.actionError} accessibilityLiveRegion="polite">
+        <Text style={styles.actionErrorText}>
+          {errorMessage(selectionDownloadMutation.error)}
         </Text>
       </View>
     );
@@ -544,7 +744,9 @@ export function MainSurface({ theme, host, layout }: PluginSurfaceProps) {
               {renderDirectoryDownloadButton()}
             </View>
 
+            {renderSelectionBar()}
             {renderDirectoryDownloadError()}
+            {renderSelectionDownloadError()}
 
             {directoryQuery.isPending ? (
               <View style={styles.state}>
@@ -576,34 +778,74 @@ export function MainSurface({ theme, host, layout }: PluginSurfaceProps) {
                   const actionable =
                     entry.kind === "directory" ||
                     (entry.kind === "file" && entry.previewStatus === "available");
-                  const selected = selectedEntry?.name === entry.name;
+                  const downloadSelectable =
+                    (entry.kind === "directory" || entry.kind === "file") &&
+                    entry.archiveStatus === "available";
+                  const selectedForArchive = selectedNameSet.has(entry.name);
+                  const selectionDisabled =
+                    !downloadSelectable ||
+                    selectionDownloadMutation.isPending ||
+                    (!selectedForArchive && selectedNames.length >= ARCHIVE_SELECTION_MAX_ITEMS);
+                  const selected =
+                    selectedEntry?.name === entry.name || selectedForArchive;
                   return (
-                    <Pressable
+                    <View
                       key={`${entry.kind}:${entry.name}`}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${entry.name}, ${kindLabel(entry)}`}
-                      accessibilityState={{ disabled: !actionable, selected }}
-                      disabled={!actionable}
-                      onPress={() => chooseEntry(entry)}
                       style={[
                         styles.row,
                         selected && styles.selectedRow,
-                        !actionable && styles.disabled,
                       ]}
                     >
-                      <Icon
-                        name={iconFor(entry)}
-                        size={18}
-                        color={entry.previewStatus === "sensitive" ? theme.colors.statusWarning : theme.colors.foregroundMuted}
-                      />
-                      <View style={styles.rowCopy}>
-                        <Text style={styles.rowName} numberOfLines={1}>{entry.name}</Text>
-                        <Text style={styles.rowMeta}>{kindLabel(entry)}</Text>
-                      </View>
-                      {actionable ? (
-                        <Icon name="ChevronRight" size={18} color={theme.colors.foregroundMuted} />
-                      ) : null}
-                    </Pressable>
+                      <Pressable
+                        accessibilityRole="checkbox"
+                        accessibilityLabel={
+                          downloadSelectable
+                            ? `${entry.name} 다운로드 ${selectedForArchive ? "선택 해제" : "선택"}`
+                            : `${entry.name} 다운로드 선택 불가`
+                        }
+                        accessibilityState={{
+                          checked: selectedForArchive,
+                          disabled: selectionDisabled,
+                        }}
+                        disabled={selectionDisabled}
+                        onPress={() => toggleArchiveSelection(entry)}
+                        style={[
+                          styles.selectionToggle,
+                          selectionDisabled && styles.disabled,
+                        ]}
+                      >
+                        <Icon
+                          name={selectedForArchive ? "SquareCheckBig" : "Square"}
+                          size={20}
+                          color={
+                            selectedForArchive
+                              ? theme.colors.accent
+                              : theme.colors.foregroundMuted
+                          }
+                        />
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`${entry.name}, ${kindLabel(entry)}`}
+                        accessibilityState={{ disabled: !actionable, selected: selectedEntry?.name === entry.name }}
+                        disabled={!actionable}
+                        onPress={() => chooseEntry(entry)}
+                        style={[styles.rowAction, !actionable && styles.disabled]}
+                      >
+                        <Icon
+                          name={iconFor(entry)}
+                          size={18}
+                          color={entry.previewStatus === "sensitive" ? theme.colors.statusWarning : theme.colors.foregroundMuted}
+                        />
+                        <View style={styles.rowCopy}>
+                          <Text style={styles.rowName} numberOfLines={1}>{entry.name}</Text>
+                          <Text style={styles.rowMeta}>{kindLabel(entry)}</Text>
+                        </View>
+                        {actionable ? (
+                          <Icon name="ChevronRight" size={18} color={theme.colors.foregroundMuted} />
+                        ) : null}
+                      </Pressable>
+                    </View>
                   );
                 })}
                 {directoryQuery.hasNextPage ? (

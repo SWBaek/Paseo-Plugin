@@ -9,6 +9,7 @@ import {
   openFileBrowserArchiveEntry,
   openFileBrowserDownload,
   prepareFileBrowserDirectoryDownload,
+  prepareFileBrowserSelectionDownload,
   revalidateFileBrowserDirectoryDownload,
   type DownloadDirectoryEntry,
   type DownloadDirectoryManifest,
@@ -61,6 +62,11 @@ export interface FileDownloadServerOptions {
   prepareDirectory?: (input: {
     rootId: string;
     segments: string[];
+  }) => Promise<DownloadDirectoryManifest>;
+  prepareSelection?: (input: {
+    rootId: string;
+    segments: string[];
+    names: string[];
   }) => Promise<DownloadDirectoryManifest>;
   revalidateDirectory?: (
     manifest: DownloadDirectoryManifest,
@@ -297,6 +303,28 @@ export function createFileDownloadServer(options: FileDownloadServerOptions) {
     });
   }
 
+  async function issueSelectionDownload(input: {
+    rootId: string;
+    segments: string[];
+    names: string[];
+  }): Promise<{ url: string; expiresAt: string }> {
+    requireWindows();
+    if (!options.prepareSelection || !options.revalidateDirectory || !options.openArchiveFile) {
+      throw publicError("선택 항목 다운로드를 사용할 수 없습니다.");
+    }
+    const manifest = await options.prepareSelection({
+      rootId: input.rootId,
+      segments: [...input.segments],
+      names: [...input.names],
+    });
+    return registerDownload({
+      kind: "directory",
+      rootId: input.rootId,
+      segments: [...input.segments],
+      manifest,
+    });
+  }
+
   async function handleRequest(request: IncomingMessage, response: ServerResponse): Promise<void> {
     if (requireTailscaleIdentity) {
       const identity = request.headers["tailscale-user-login"];
@@ -442,12 +470,13 @@ export function createFileDownloadServer(options: FileDownloadServerOptions) {
       : null;
   }
 
-  return { issueDownload, issueDirectoryDownload, localAddress, stop };
+  return { issueDownload, issueDirectoryDownload, issueSelectionDownload, localAddress, stop };
 }
 
 const defaultFileDownloadServer = createFileDownloadServer({
   openFile: openFileBrowserDownload,
   prepareDirectory: prepareFileBrowserDirectoryDownload,
+  prepareSelection: prepareFileBrowserSelectionDownload,
   revalidateDirectory: revalidateFileBrowserDirectoryDownload,
   openArchiveFile: openFileBrowserArchiveEntry,
   resolvePublicBaseUrl: () => resolveTailscaleDownloadBaseUrl(),
@@ -465,6 +494,14 @@ export function createFileBrowserDirectoryDownload(input: {
   segments: string[];
 }) {
   return defaultFileDownloadServer.issueDirectoryDownload(input);
+}
+
+export function createFileBrowserSelectionDownload(input: {
+  rootId: string;
+  segments: string[];
+  names: string[];
+}) {
+  return defaultFileDownloadServer.issueSelectionDownload(input);
 }
 
 export function stopFileBrowserDownloads() {

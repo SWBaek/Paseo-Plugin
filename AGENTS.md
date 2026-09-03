@@ -68,7 +68,7 @@ npm run typecheck --workspace paseo-plugin
   Role: 각 Agent의 Composer track bar에 `Skills` pill을 추가하고, 현재 세션이 로드한 Skill을 Modal에서 고른 뒤 최종 문장을 클립보드에 복사한다. Composer 입력창에 직접 넣거나 자동 전송하지 않는다.
 - `plugins/file-browser/`
   Audience: **Personal operations**
-  Role: 선택된 Windows daemon host의 `C:\Projects` 아래 폴더와 작은 텍스트 파일을 읽기 전용으로 탐색하고, 일반 파일과 선택한 하위 폴더 ZIP을 Tailnet 전용 일회용 HTTPS URL로 내려받는 전역 사이드바 surface를 제공한다. daemon-side allowlist 밖의 경로와 link·junction 대상은 열지 않는다.
+  Role: 선택된 Windows daemon host의 `C:\Projects` 아래 폴더와 작은 텍스트 파일을 읽기 전용으로 탐색하고, 일반 파일과 Git ignore를 반영한 선택 파일·폴더 ZIP을 Tailnet 전용 일회용 HTTPS URL로 내려받는 전역 사이드바 surface를 제공한다. daemon-side allowlist 밖의 경로와 link·junction 대상은 열지 않는다.
 
 ## Per-Plugin Change Routing
 
@@ -96,7 +96,7 @@ npm run typecheck --workspace paseo-plugin
 - `tailscale-dashboard`의 server, shared 또는 view 동작을 바꾸면 `npm run typecheck --workspace tailscale-dashboard`와 `npm test --workspace tailscale-dashboard`를 모두 실행한다. Tailscale CLI 명령 변경은 `status --json`과 `serve status --json`만 허용하는 read-only allowlist 테스트를 반드시 통과해야 한다.
 - `composer-compact`의 client 또는 registration 동작을 바꾸면 `npm run typecheck --workspace composer-compact`와 `npm test --workspace composer-compact`를 모두 실행한다.
 - `composer-skills`의 client, catalog, clipboard 또는 registration 동작을 바꾸면 `npm run typecheck --workspace composer-skills`와 `npm test --workspace composer-skills`를 모두 실행한다.
-- `file-browser`의 server, shared 또는 view 동작을 바꾸면 `npm run typecheck --workspace file-browser`와 `npm test --workspace file-browser`를 모두 실행한다. Windows 경로 변경은 allowlist 탈출, link·junction, 민감 파일, preview 크기 제한 테스트를 반드시 통과해야 한다. 다운로드 변경은 localhost bind, Tailnet identity, token 만료·재사용, 요청 시 경로 재검증과 streaming response 테스트를 함께 통과해야 한다. 폴더 ZIP 변경은 root 다운로드 차단, 민감·link·특수 항목 거부, 항목 수·비압축 크기·깊이·동시 전송 제한, UTF-8 이름·빈 폴더 보존과 임시 파일 없는 archive streaming을 추가로 검증한다.
+- `file-browser`의 server, shared 또는 view 동작을 바꾸면 `npm run typecheck --workspace file-browser`와 `npm test --workspace file-browser`를 모두 실행한다. Windows 경로 변경은 allowlist 탈출, link·junction, 민감 파일, preview 크기 제한 테스트를 반드시 통과해야 한다. 다운로드 변경은 localhost bind, Tailnet identity, token 만료·재사용, 요청 시 경로 재검증과 streaming response 테스트를 함께 통과해야 한다. 폴더 ZIP 변경은 root 다운로드 차단, 민감·link·특수 항목 거부, 항목 수·비압축 크기·깊이·동시 전송 제한, UTF-8 이름·빈 폴더 보존과 임시 파일 없는 archive streaming을 추가로 검증한다. Git ignore 또는 다중 선택 변경은 read-only Git 명령과 실제 Git 상태 무변경, 표준 ignore 계층, 비-Git 기본 제외, 명시 파일 선택, 선택 수 제한과 selection manifest 재검증을 함께 검사한다.
 - workspace 구조, 설치 상태 또는 여러 플러그인에 걸친 변경은 루트에서 `npm run typecheck`로 검사한다.
 - Git source 설치나 업데이트 경로를 변경하거나 배포를 준비할 때는 루트에서 `npm run check:git-source-imports`를 실행한다. Git 설치는 package manager와 install script를 실행하지 않으므로 runtime import는 host 제공 모듈, Node 기본 모듈과 플러그인 내부 상대 경로만 사용한다.
 - 같은 컴퓨터에서 소스를 편집하는 개발 흐름은 directory install과 `plugin reload`, 다른 daemon이나 PC에 배포하는 운영 흐름은 Git source의 `plugin add --path`와 `plugin update`를 사용한다. 기존 directory runtime과 Git 검증 runtime에는 서로 다른 ID를 사용한다.

@@ -28,7 +28,9 @@ describe("file-browser view helpers", () => {
       rootId: "projects",
       segments: [],
       displayPath: "C:\\Projects",
-      entries: [{ name, kind: "file", previewStatus: "available" }],
+      entries: [
+        { name, kind: "file", previewStatus: "available", archiveStatus: "available" },
+      ],
       pageInfo: { hasMore: false, nextCursor: null },
     });
     expect(flattenDirectoryPages([page("a"), page("b")]).map((entry) => entry.name)).toEqual([

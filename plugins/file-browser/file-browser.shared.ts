@@ -7,10 +7,12 @@ export const FILE_DOWNLOAD_TOKEN_TTL_MS = 60 * 1000;
 export const DIRECTORY_DOWNLOAD_MAX_ENTRIES = 10_000;
 export const DIRECTORY_DOWNLOAD_MAX_BYTES = 2 * 1024 * 1024 * 1024;
 export const DIRECTORY_DOWNLOAD_MAX_DEPTH = 64;
+export const ARCHIVE_SELECTION_MAX_ITEMS = 100;
 
 export const PathSegmentsSchema = z.array(z.string().min(1).max(255)).max(128);
 export const EntryKindSchema = z.enum(["directory", "file", "link", "other"]);
 export const PreviewStatusSchema = z.enum(["available", "sensitive", "unsupported"]);
+export const ArchiveStatusSchema = z.enum(["available", "excluded", "blocked"]);
 
 export const FileBrowserRootSchema = z.object({
   id: z.string().min(1),
@@ -23,6 +25,7 @@ export const DirectoryEntrySchema = z.object({
   name: z.string().min(1),
   kind: EntryKindSchema,
   previewStatus: PreviewStatusSchema,
+  archiveStatus: ArchiveStatusSchema,
 });
 
 export const DirectoryPageSchema = z.object({
@@ -95,8 +98,22 @@ export const fileBrowserCreateDirectoryDownload = defineRpc({
   }),
 });
 
+export const fileBrowserCreateSelectionDownload = defineRpc({
+  name: "file-browser.selection.download.create",
+  input: z.object({
+    rootId: z.string().min(1).max(64),
+    segments: PathSegmentsSchema,
+    names: z.array(z.string().min(1).max(255)).min(1).max(ARCHIVE_SELECTION_MAX_ITEMS),
+  }),
+  output: z.object({
+    url: z.string().url(),
+    expiresAt: z.string().datetime(),
+  }),
+});
+
 export type FileBrowserRoot = z.infer<typeof FileBrowserRootSchema>;
 export type DirectoryEntry = z.infer<typeof DirectoryEntrySchema>;
 export type DirectoryPage = z.infer<typeof DirectoryPageSchema>;
 export type FilePreview = z.infer<typeof FilePreviewSchema>;
 export type PreviewStatus = z.infer<typeof PreviewStatusSchema>;
+export type ArchiveStatus = z.infer<typeof ArchiveStatusSchema>;
