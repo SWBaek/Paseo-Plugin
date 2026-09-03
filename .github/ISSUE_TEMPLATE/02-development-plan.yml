@@ -25,6 +25,7 @@ body:
         - tailscale-dashboard
         - composer-compact
         - composer-skills
+        - file-browser
         - 새 플러그인
     validations:
       required: true
