@@ -44,6 +44,7 @@ paseo plugin add SWBaek/Paseo-Plugin:plugins/tailscale-dashboard
 paseo plugin add SWBaek/Paseo-Plugin:plugins/composer-compact
 paseo plugin add SWBaek/Paseo-Plugin:plugins/composer-skills
 paseo plugin add SWBaek/Paseo-Plugin:plugins/file-browser
+paseo plugin add SWBaek/Paseo-Plugin:plugins/provider-usage
 paseo plugin ls
 ```
 
