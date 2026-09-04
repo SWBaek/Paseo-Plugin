@@ -8,7 +8,7 @@
 
 규칙이 충돌하면 아래 순서를 따른다.
 
-1. 현재 [Plugin quickstart](https://paseo.sh/docs/plugins)와 [Plugin reference](https://paseo.sh/docs/plugins/reference)
+1. 현재 안정판 [Plugin quickstart](https://paseo.sh/docs/plugins/v0.7)와 [Plugin reference](https://paseo.sh/docs/plugins/v0.7/reference)
 2. 대상 Paseo 버전의 fresh scaffold와 exact `@getpaseo/plugin` package declaration
 3. 이 문서
 4. Paseo 본체의 `docs/design.md`

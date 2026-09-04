@@ -101,6 +101,6 @@ Paseo를 업데이트한 뒤 다음 순서로 이 문서를 갱신한다.
 
 - [Paseo `v0.7.2` Plugin reference](https://github.com/getpaseo/paseo/blob/v0.7.2/public-docs/plugins/reference.md)
 - [Paseo `v0.7.2` Plugin guide](https://github.com/getpaseo/paseo/blob/v0.7.2/public-docs/plugins/index.md)
-- [현재 배포된 Plugin quickstart](https://paseo.sh/docs/plugins)
-- [현재 배포된 Plugin reference](https://paseo.sh/docs/plugins/reference)
+- [현재 안정판 Plugin quickstart](https://paseo.sh/docs/plugins/v0.7)
+- [현재 안정판 Plugin reference](https://paseo.sh/docs/plugins/v0.7/reference)
 - [Paseo TypeScript SDK reference](https://paseo.sh/docs/sdk/reference)

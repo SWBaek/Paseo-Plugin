@@ -19,7 +19,6 @@ body:
       description: 문제가 발생한 범위를 선택해 주세요.
       options:
         - workspace 전체
-        - paseo-plugin
         - branch-garden
         - github-project-board
         - tailscale-dashboard
