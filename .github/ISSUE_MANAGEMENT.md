@@ -8,7 +8,7 @@
 - Issue Form으로 만든 Issue는 `Paseo Plugins` Project에 자동 등록된다. 아직 `Status` 값이 없는 항목도 Backlog 보기에 표시되며 분류할 때 `Inbox`를 지정한다.
 - 구현하기로 결정한 작업은 검증 가능한 완료 조건을 채운 뒤 `Ready`로 옮긴다.
 - 한 Issue는 독립적으로 검증할 수 있는 하나의 결과를 다룬다.
-- 플러그인 영역 라벨은 디렉터리명이 아니라 `paseo-plugin.json`의 런타임 ID를 기준으로 한다.
+- 플러그인 영역 라벨은 디렉터리명이 아니라 `paseo-plugin.json`의 런타임 ID를 기준으로 한다. 아직 manifest가 없는 새 플러그인 제안은 `area:new-plugin`을 사용하고, scaffold를 만든 뒤 `plugin:<runtime-id>`로 교체한다.
 - 진행하지 않기로 한 제안은 삭제하지 않고 `not planned` 사유로 닫아 결정 기록을 남긴다.
 
 ## Project 필드

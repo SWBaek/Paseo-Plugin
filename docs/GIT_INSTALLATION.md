@@ -28,6 +28,7 @@ Paseo는 lockfile을 보고 package manager나 install script를 자동 실행�
 
 ```powershell
 npm run check:git-source-imports
+npm run check:docs-sync
 npm run typecheck
 ```
 
@@ -113,9 +114,9 @@ paseo plugin ls
 
 Git source를 제거하면 runtime 설정과 managed checkout이 함께 제거됩니다. 원본 Git 저장소는 삭제되지 않습니다. 검증을 마친 뒤 임시 runtime이 목록에서 사라졌고 기존 runtime이 계속 `running`인지 확인하세요.
 
-## 0.7.0-beta.1 검증 기록
+## 과거 0.7.0-beta.1 검증 기록
 
-2026-08-28에 로컬 Paseo `0.7.0-beta.1` daemon에서 다음 경로를 실제 검증했습니다.
+아래 내용은 현재 기준 버전인 `0.7.2`의 검증 결과가 아니라, Git source 흐름을 처음 도입할 때 남긴 역사적 기록입니다. 2026-08-28에 로컬 Paseo `0.7.0-beta.1` daemon에서 다음 경로를 실제 검증했습니다.
 
 - `plugins/branch-garden`과 `plugins/github-project-board`를 서로 다른 임시 runtime ID로 설치했습니다.
 - 두 managed checkout에 `node_modules`가 없는 상태에서 모두 `running`이 되었습니다.
@@ -125,4 +126,4 @@ Git source를 제거하면 runtime 설정과 managed checkout이 함께 제거�
 - 복구 commit을 올린 뒤 단일 update가 성공했고 상태가 최신으로 돌아왔습니다.
 - 모든 임시 runtime, managed checkout과 원격 검증 branch를 제거한 뒤 기존 `branch-garden`, `github-project-board`가 계속 `running`임을 확인했습니다.
 
-현재 계약의 기준은 [Plugin quickstart](https://paseo.sh/docs/plugins)와 [Plugin reference의 CLI reference](https://paseo.sh/docs/plugins/reference#cli-reference)입니다.
+현재 계약의 기준은 안정판 [Plugin quickstart](https://paseo.sh/docs/plugins/v0.7)와 [Plugin reference의 CLI reference](https://paseo.sh/docs/plugins/v0.7/reference#cli-reference)입니다.

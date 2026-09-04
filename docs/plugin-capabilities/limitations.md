@@ -98,7 +98,7 @@
 
 ## Version drift 주의
 
-현재 배포된 [Plugin reference](https://paseo.sh/docs/plugins/reference)는 설치된 Paseo와 다른 시점의 기능을 설명할 수 있다. 대상 버전의 tag 문서와 fresh scaffold에 없는 field나 hook은 사용하지 않는다.
+현재 안정판 [Plugin reference](https://paseo.sh/docs/plugins/v0.7/reference)는 설치된 Paseo와 다른 patch 시점의 기능을 설명할 수 있다. 대상 버전의 tag 문서와 fresh scaffold에 없는 field나 hook은 사용하지 않는다.
 
 이 저장소의 모든 workspace는 exact `@getpaseo/plugin@0.7.2` package declaration과 동기화되어 있다. 이후 Paseo를 업데이트할 때도 기존 설치 package만 보고 기능 범위를 판단하거나 ambient declaration을 손으로 임의 확장하지 말고, 새 CLI의 fresh scaffold와 exact package declaration을 다시 비교한다.
 
