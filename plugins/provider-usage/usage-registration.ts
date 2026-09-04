@@ -6,6 +6,8 @@ import type {
 } from "@getpaseo/plugin";
 import { isSupportedProviderId, parseAgentProviderId } from "./provider-usage.logic";
 
+export type RefreshUsage = () => Promise<void>;
+
 interface RegisteredPill {
   workspaceId: string;
   providerId: string;
@@ -15,6 +17,7 @@ interface RegisteredPill {
 export function registerUsagePills(
   client: PluginClientContext,
   Component: ComponentType<PluginComposerPillProps>,
+  refreshUsage: RefreshUsage,
 ): PluginCleanup {
   const pills = new Map<string, RegisteredPill>();
   const updatedAgentIds = new Set<string>();
@@ -44,14 +47,19 @@ export function registerUsagePills(
     if (registered?.workspaceId === workspaceId && registered.providerId === providerId) return;
 
     removePill(agentId);
+    let action: Promise<void> | undefined;
     const remove = client.addComposerPill({
       id: "usage",
-      title: "Open provider usage",
+      title: "Refresh provider usage",
       workspaceId,
       agentId,
       Component,
       onPress() {
-        client.openSurface("main");
+        if (action) return action;
+        action = refreshUsage().finally(() => {
+          action = undefined;
+        });
+        return action;
       },
     });
     pills.set(agentId, { workspaceId, providerId, remove });
