@@ -18,6 +18,7 @@
 | [`composer-compact`](plugins/composer-compact/) | Personal productivity | Agent의 Composer track bar에 `Compact` pill을 추가하고 확인 Modal에서 승인한 경우에만 해당 Agent에 `/compact`를 전송합니다. |
 | [`composer-skills`](plugins/composer-skills/) | Personal productivity | Agent의 Composer track bar에 `Skills` pill을 추가하고, 현재 세션 Skill을 Modal에서 고른 뒤 최종 문장을 클립보드에 복사합니다. 자동 전송과 Composer 직접 입력은 하지 않습니다. |
 | [`file-browser`](plugins/file-browser/) | Personal operations | 선택된 Windows daemon host의 `C:\Projects`를 읽기 전용으로 탐색하고, 검증된 파일과 폴더 ZIP을 Tailnet 전용 일회용 HTTPS URL로 내려받습니다. |
+| [`provider-usage`](plugins/provider-usage/) | Personal operations | 선택된 Host의 Codex와 Grok 계획 사용량을 읽기 전용으로 집계해 전역 sidebar와 Agent Composer pill에 보여 줍니다. |
 
 Runtime ID의 기준은 디렉터리명이나 package 이름이 아니라 각 플러그인의 `paseo-plugin.json`입니다.
 
@@ -47,6 +48,7 @@ npm test --workspace tailscale-dashboard
 npm test --workspace composer-compact
 npm test --workspace composer-skills
 npm test --workspace file-browser
+npm test --workspace provider-usage
 ```
 
 플러그인 하나만 검사할 때는 package 이름을 workspace 선택자로 사용합니다.
@@ -69,6 +71,7 @@ paseo plugin install (Join-Path $repoRoot "plugins\tailscale-dashboard")
 paseo plugin install (Join-Path $repoRoot "plugins\composer-compact")
 paseo plugin install (Join-Path $repoRoot "plugins\composer-skills")
 paseo plugin install (Join-Path $repoRoot "plugins\file-browser")
+paseo plugin install (Join-Path $repoRoot "plugins\provider-usage")
 paseo plugin ls
 ```
 
@@ -97,6 +100,7 @@ paseo plugin add SWBaek/Paseo-Plugin:plugins/tailscale-dashboard
 paseo plugin add SWBaek/Paseo-Plugin:plugins/composer-compact
 paseo plugin add SWBaek/Paseo-Plugin:plugins/composer-skills
 paseo plugin add SWBaek/Paseo-Plugin:plugins/file-browser
+paseo plugin add SWBaek/Paseo-Plugin:plugins/provider-usage
 paseo plugin status
 paseo plugin update --all
 ```
@@ -114,7 +118,8 @@ paseo plugin update --all
 │   ├── tailscale-dashboard/
 │   ├── composer-compact/
 │   ├── composer-skills/
-│   └── file-browser/
+│   ├── file-browser/
+│   └── provider-usage/
 ├── docs/
 │   ├── DESIGN.md
 │   ├── GIT_INSTALLATION.md
