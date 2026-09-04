@@ -1,7 +1,7 @@
 import type { PluginSurfaceProps, PluginTheme } from "@getpaseo/plugin";
 import { useRpc } from "@getpaseo/plugin";
 import { Icon } from "@getpaseo/plugin/react-native";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import type { ProviderUsage, UsageBalance, UsageWindow } from "./provider-usage.shared";
@@ -14,8 +14,7 @@ import {
   toneColor,
   usageCopy,
 } from "./provider-usage.view";
-
-const QUERY_KEY = ["provider-usage", "snapshot"] as const;
+import { bindUsageQueryClient, usageQueryOptions } from "./usage-query";
 
 function createStyles(theme: PluginTheme, compact: boolean) {
   return StyleSheet.create({
@@ -224,11 +223,8 @@ export function MainSurface({ theme, layout }: PluginSurfaceProps) {
   const compact = layout.compact;
   const styles = useMemo(() => createStyles(theme, compact), [theme, compact]);
   const snapshot = useRpc(providerUsageSnapshot);
-  const query = useQuery({
-    queryKey: QUERY_KEY,
-    queryFn: () => snapshot({}),
-    staleTime: 60_000,
-  });
+  bindUsageQueryClient(useQueryClient());
+  const query = useQuery(usageQueryOptions(() => snapshot({})));
   const providers = query.data?.providers ?? [];
   const status = snapshotStatus(providers, query.isPending, query.isError);
   const copy = status === "available" ? null : usageCopy(status);

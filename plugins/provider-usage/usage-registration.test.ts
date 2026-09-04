@@ -17,7 +17,7 @@ const TestPill = (() => null) as ComponentType<PluginComposerPillProps>;
 function setup() {
   let emit: (update: AgentUpdate) => void = () => {};
   const unsubscribe = vi.fn();
-  const openSurface = vi.fn();
+  const refreshUsage = vi.fn(async () => {});
   const list = vi.fn<() => Promise<AgentListResult>>(async () => ({
     requestId: "list-agents",
     entries: [],
@@ -37,7 +37,6 @@ function setup() {
   });
   const client = {
     addComposerPill,
-    openSurface,
     paseo: { agents: { list, subscribe } },
   } as unknown as PluginClientContext;
 
@@ -47,7 +46,7 @@ function setup() {
       emit(update);
     },
     unsubscribe,
-    openSurface,
+    refreshUsage,
     list,
     registrations,
     removers,
@@ -74,27 +73,43 @@ describe("usage composer pill registration", () => {
       entries: [{ agent: { id: "agent-1", workspaceId: "workspace-1", provider: "codex/gpt-5.4" } }],
     } as AgentListResult);
 
-    registerUsagePills(context.client, TestPill);
+    registerUsagePills(context.client, TestPill, context.refreshUsage);
     await Promise.resolve();
 
     expect(context.addComposerPill).toHaveBeenCalledTimes(1);
     expect(context.registrations[0]).toMatchObject({
       id: "usage",
-      title: "Open provider usage",
+      title: "Refresh provider usage",
       workspaceId: "workspace-1",
       agentId: "agent-1",
     });
   });
 
-  it("opens the usage surface from the pill and ignores unsupported providers", () => {
+  it("refreshes usage from the pill and ignores unsupported providers", async () => {
     const context = setup();
-    registerUsagePills(context.client, TestPill);
+    registerUsagePills(context.client, TestPill, context.refreshUsage);
     context.emit(upsert("agent-1", "workspace-1", "grok/grok-code"));
     context.emit(upsert("agent-2", "workspace-1", "claude/sonnet"));
 
     expect(context.addComposerPill).toHaveBeenCalledTimes(1);
-    void context.registrations[0]?.onPress();
-    expect(context.openSurface).toHaveBeenCalledWith("main");
+    await context.registrations[0]?.onPress();
+    expect(context.refreshUsage).toHaveBeenCalledTimes(1);
+  });
+
+  it("shares an in-flight refresh so duplicate presses fetch once", async () => {
+    const context = setup();
+    let finish: () => void = () => {};
+    context.refreshUsage.mockImplementationOnce(
+      () => new Promise<void>((resolve) => (finish = resolve)),
+    );
+    registerUsagePills(context.client, TestPill, context.refreshUsage);
+    context.emit(upsert("agent-1", "workspace-1", "codex/gpt-5.4"));
+
+    const firstPress = context.registrations[0]?.onPress();
+    const secondPress = context.registrations[0]?.onPress();
+    expect(context.refreshUsage).toHaveBeenCalledTimes(1);
+    finish();
+    await Promise.all([firstPress, secondPress]);
   });
 
   it("does not restore a stale list entry after a newer removal update", async () => {
@@ -104,7 +119,7 @@ describe("usage composer pill registration", () => {
       () => new Promise<AgentListResult>((resolve) => (resolveList = resolve)),
     );
 
-    registerUsagePills(context.client, TestPill);
+    registerUsagePills(context.client, TestPill, context.refreshUsage);
     context.emit({ kind: "remove", agentId: "agent-1" } as AgentUpdate);
     resolveList({
       entries: [{ agent: { id: "agent-1", workspaceId: "workspace-1", provider: "codex/gpt-5.4" } }],
@@ -116,7 +131,7 @@ describe("usage composer pill registration", () => {
 
   it("removes pills for archived agents and cleans up on dispose", () => {
     const context = setup();
-    const dispose = registerUsagePills(context.client, TestPill);
+    const dispose = registerUsagePills(context.client, TestPill, context.refreshUsage);
     context.emit(upsert("agent-1", "workspace-1", "codex/gpt-5.4"));
     context.emit(upsert("agent-1", "workspace-1", "codex/gpt-5.4", "2026-09-04T00:00:00.000Z"));
     expect(context.removers[0]).toHaveBeenCalledTimes(1);
