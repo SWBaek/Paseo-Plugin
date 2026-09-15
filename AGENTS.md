@@ -58,7 +58,7 @@ npm test --workspace branch-garden
 
 - `plugins/prompt-palette/`
   Audience: **Personal operations**
-  Role: Host Settings에 반복 프롬프트를 저장하고 Agent Composer pill의 Modal에서 본문을 미리 본 뒤 공식 SDK로 전송한다.
+  Role: Host Settings에 반복 프롬프트를 저장하고 Agent Composer pill의 host popover/compact sheet에서 본문을 미리 본 뒤 공식 SDK로 전송한다.
 
 - `plugins/command-deck/`
   Audience: **Personal operations**
@@ -78,7 +78,7 @@ npm test --workspace branch-garden
 - `client/*.tsx`: UI, 훅, React Native 스타일. 모든 `Text` 색상은 `theme.colors`, 루트 배경은 `theme.colors.surface0`, 좁은 화면은 `layout.compact`를 사용한다.
 - `*.logic.ts`, `*.view.ts`: 런타임에 의존하지 않는 도메인 판단과 표시용 파생 값을 소유한다. 동작을 바꾸면 같은 이름의 테스트를 함께 확인한다.
 - Provider Usage의 `client/usage-registration.ts`는 Composer pill 등록 수명을 소유한다. `usage-query.ts`는 공식 usage snapshot을 요청 시에만 읽고 폴링하지 않는다. `usage-visibility.ts`는 Settings의 Composer pill 표시 여부를 주기적으로 읽어 반영한다. 구독·timer·pending state처럼 수명이 있는 자원은 만든 모듈에서 cleanup을 제공하고 동명 테스트를 함께 확인한다. `client/usage-settings.tsx`는 설정 UI를, `shared/usage-settings.ts`는 schema·migration을 소유하며 Settings 변경 시 아래 동기화 규칙을 따른다.
-- Prompt Palette의 `shared/prompt-settings.ts`는 schema를, `client/prompt-settings.tsx`는 revision을 고정한 draft 편집을, `prompt-registration.ts`·`prompt-controller.ts`·`prompt-send.ts`는 등록·Modal·전송 수명을 소유한다. 변경 시 workspace typecheck와 테스트를 실행한다. 전송은 공식 Agent `send()`만 사용하며 자동 재전송하지 않는다.
+- Prompt Palette의 `shared/prompt-settings.ts`는 schema를, `client/prompt-settings.tsx`는 revision을 고정한 draft 편집을, `prompt-registration.ts`·`prompt-picker.tsx`·`prompt-send.ts`는 등록·popover 본문·전송 수명을 소유한다. Picker의 세로 스크롤과 compact sheet 표시는 host가 소유하며, 본문에 세로 ScrollView를 중첩하지 않는다. 변경 시 workspace typecheck와 테스트를 실행한다. 전송은 공식 Agent `send()`만 사용하며 자동 재전송하지 않는다.
 - Command Deck의 `shared/commands.ts`는 Project(`projectId`) Settings와 실행 RPC 계약을 소유한다. v1 `workspaceId`는 `legacyWorkspaceId`로만 이전한다. 실행·터미널 소유권은 현재 Workspace다. `server/runner.ts`는 실행 직렬화·터미널 소유권 확인·재발견을 소유한다. `client/run-controller.ts`·`registration.ts`는 조회·기여 수명을 소유한다. 변경 시 workspace typecheck와 테스트를 실행한다. 명령 실행은 공식 Terminal SDK만 사용하며 응답 유실 시 자동 재전송하지 않는다. Cleanup은 터미널을 종료하지 않는다.
 - `paseo-plugin.json`: 설치 기본 ID를 소유한다. 디렉터리명이나 package 이름으로 런타임 ID를 추측하지 않는다.
 - `package.json`: 로컬 타입 검사용 exact `@getpaseo/plugin` 의존성을 소유한다. 공개 계약을 ambient declaration으로 임의 확장하지 않는다.

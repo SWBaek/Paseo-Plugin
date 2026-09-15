@@ -1,7 +1,7 @@
 import { type PluginButtonContentProps, usePaseo, useSettings, useAgent } from "@getpaseo/plugin/client";
-import { ScrollView, copyText } from "@getpaseo/plugin/client/react-native";
+import { copyText } from "@getpaseo/plugin/client/react-native";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Text, View } from "react-native";
+import { Text, View, useWindowDimensions } from "react-native";
 import { promptSettings, type Prompt } from "../shared/prompt-settings";
 import type { PromptSender } from "./prompt-send";
 import { Action, PromptRow } from "./prompt-ui";
@@ -17,6 +17,7 @@ function PromptPicker({ theme, layout, host, agentId, workspaceId, sender, close
   sender: PromptSender; openSettings(): void;
 }) {
   const settings = useSettings(promptSettings);
+  const { height: windowHeight } = useWindowDimensions();
   const paseo = usePaseo();
   const agent = useAgent(agentId, value => ({ title: value.title, workspaceId: value.workspaceId }));
   const [selected, setSelected] = useState<Prompt | null>(null);
@@ -46,7 +47,10 @@ function PromptPicker({ theme, layout, host, agentId, workspaceId, sender, close
     else if (result === "unavailable") setError("Agent unavailable. Check the Host connection and try again.");
   }
   const message = (text: string) => <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12 }}>{text}</Text>;
-  return <View style={{ gap: 16 }}>
+  // Popover sheets size themselves to their content. Reserve reading space even
+  // while loading or showing one item; let the host own all vertical scrolling.
+  // This is a minimum body height, not a sheet snap point or a fixed content cap.
+  return <View style={{ gap: 16, minHeight: layout.compact ? Math.round(windowHeight * 0.6) : undefined }}>
       <View style={{ gap: 4 }}>
         <Text numberOfLines={2} style={{ color: theme.colors.foreground, fontSize: 14, lineHeight: 20 }}>
           Agent: {agent?.title || agentId}
@@ -56,10 +60,7 @@ function PromptPicker({ theme, layout, host, agentId, workspaceId, sender, close
       {unavailable ? message("This Agent is no longer available.") : null}
       {error ? <Text accessibilityRole="alert" style={{ color: theme.colors.foreground, fontSize: 14 }}>{error}</Text> : null}
       {selected ? <>
-        <ScrollView style={{ flexGrow: 0, flexShrink: 1, minHeight: 0, maxHeight: layout.compact ? 280 : 400 }}>
-          <Text selectable style={{ color: theme.colors.foreground, fontSize: 14, lineHeight: 22 }}>{selected.body}</Text>
-        </ScrollView>
-        {message("Sends this text as a separate message. Your Composer draft and attachments stay in place. A running Agent may receive it as a follow-up.")}
+        <Text accessibilityRole="header" style={{ color: theme.colors.foreground, fontSize: 14, lineHeight: 20 }}>{selected.name}</Text>
         {sender.uncertain ? <Action theme={theme} label="I checked the conversation — allow another send" disabled={pending}
           onPress={() => { sender.acknowledge(); setError(null); }} /> : null}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
@@ -71,6 +72,8 @@ function PromptPicker({ theme, layout, host, agentId, workspaceId, sender, close
           <Action theme={theme} label={pending ? "Sending…" : "Send"} primary
             disabled={pending || sender.uncertain || unavailable} onPress={() => { void send(); }} />
         </View>
+        {message("Review the full text below before sending. Sends a separate message; your Composer draft and attachments stay in place. A running Agent may receive it as a follow-up.")}
+        <Text selectable style={{ color: theme.colors.foreground, fontSize: 14, lineHeight: 22 }}>{selected.body}</Text>
       </> : reloading || settings.status === "loading" ? message("Loading prompts…") :
         settings.status !== "ready" ? <>
           {message("Saved prompts could not be loaded.")}
@@ -80,20 +83,15 @@ function PromptPicker({ theme, layout, host, agentId, workspaceId, sender, close
               .finally(() => { if (alive.current) setReloading(false); });
           }} />
         </> : <>
-          {/* Native ScrollView grows by default, even with only one prompt. */}
+          <Action theme={theme} secondary label={settings.values.prompts.length ? "Manage prompts" : "Add prompts"} onPress={() => { close(); openSettings(); }} />
           {settings.values.prompts.length === 0 ? message("No saved prompts yet. Add your first prompt in Settings.") :
-          <ScrollView style={{ flexGrow: 0, flexShrink: 1, minHeight: 0, maxHeight: layout.compact ? 300 : 440 }}>
             <View style={{ borderWidth: 1, borderColor: theme.colors.border, borderRadius: 8, overflow: "hidden" }}>
               {settings.values.prompts.map((prompt, index) => <View key={prompt.id}
                 style={index ? { borderTopWidth: 1, borderTopColor: theme.colors.border } : undefined}>
                 <PromptRow theme={theme} prompt={prompt} disabled={unavailable}
                   onPress={() => { setSelected({ ...prompt }); }} />
               </View>)}
-            </View>
-          </ScrollView>}
-          <View style={{ borderTopWidth: 1, borderTopColor: theme.colors.border, paddingTop: 16 }}>
-            <Action theme={theme} secondary label={settings.values.prompts.length ? "Manage prompts" : "Add prompts"} onPress={() => { close(); openSettings(); }} />
-          </View>
+            </View>}
         </>}
   </View>;
 }

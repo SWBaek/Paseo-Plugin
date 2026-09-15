@@ -30,6 +30,8 @@ No prompt was sent or edited for this capture. Historical picker and send previe
 
 The pill remains available for an empty library and links to Settings. The picker is host-owned, so it remains mounted while a prompt submission is pending; duplicate sends stay blocked. Creating a new Agent from a draft Composer is outside this version's scope.
 
+On compact layouts, the picker body reserves at least 60% of the window height, including loading and empty states. Paseo adds its own header and safe-area spacing and controls the final sheet height. Longer lists and previews use the host's single scroll area. Manage prompts appears above the list; Back, Copy text and Send appear above the full preview. Review the text before sending, then scroll back to those controls when needed. See the [mobile picker review](../../docs/verification/prompt-palette-mobile-sheet-0.8.md) for checks and native-device limits.
+
 Apply to draft does not save to the Host. Save before leaving Settings or changing Host; unsaved changes are local to the open screen. Cancel / load latest confirms discarding the draft. Delete also requires confirmation and is persisted only by Save changes.
 
 The library belongs to this Host and plugin installation, and is shared by its authorized clients. Other Hosts and installations have separate libraries. Conflicting saves preserve the draft; copy it before explicitly discarding it and loading the latest values. A settings load error does not replace an existing draft. Invalid documents are reported without automatically resetting stored content.
