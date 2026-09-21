@@ -15,7 +15,7 @@
     "check": "npm run check:docs-sync && npm run check:git-source-imports && npm run check:release && npm run typecheck && npm test"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   },
   "license": "MIT",
   "engines": {
