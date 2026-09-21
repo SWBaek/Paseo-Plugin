@@ -1,1 +1,7 @@
-{"id":"prompt-palette","requirements":{"paseo":"^0.8.0"}}
+{
+  "id": "prompt-palette",
+  "description": "Save reusable prompts in Host Settings, preview and send them to the current Agent.",
+  "requirements": {
+    "paseo": "^0.9.0"
+  }
+}

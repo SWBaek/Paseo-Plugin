@@ -105,10 +105,15 @@ export function registerUsagePills(
     syncPill(update.agent);
   });
 
+  let observation: { release(): Promise<void> } | undefined;
   void client.paseo.agents
-    .list({ scope: "active", page: { limit: 200 } })
-    .then(({ entries }) => {
-      if (!active) return;
+    .list({ scope: "active", page: { limit: 200 }, subscribe: {} })
+    .then(({ entries, subscription }) => {
+      if (!active) {
+        void subscription?.release();
+        return;
+      }
+      observation = subscription;
       for (const { agent } of entries) {
         if (!updatedAgentIds.has(agent.id)) syncPill(agent);
       }
@@ -122,6 +127,8 @@ export function registerUsagePills(
     active = false;
     unsubscribe();
     unsubscribeProviders();
+    void observation?.release();
+    observation = undefined;
     agents.clear();
     for (const { remove } of pills.values()) void remove();
     pills.clear();

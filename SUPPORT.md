@@ -10,9 +10,9 @@ English and Korean reports are welcome. Include plugin runtime ID, installed com
 
 ## Support policy
 
-Core support covers Branch Garden and Provider Usage. Prompt Palette and Command Deck are experimental additions in v0.1.0-rc.3; source-evaluation reports are welcome through the same bug form. Command Deck is Windows-only and its installed app/mobile interaction is not yet verified. Current Provider Usage delegates integrations to Paseo; the published 0.7 implementation uses experimental supplier endpoints. Five earlier plugins were removed before the first public release; see [removal guidance](docs/REMOVED_PLUGINS.md).
+Core support covers Branch Garden and Provider Usage. Prompt Palette and Command Deck are experimental additions; source-evaluation reports are welcome through the same bug form. Command Deck is Windows-only and its installed app/mobile interaction is not yet verified. Current Provider Usage delegates integrations to Paseo; the published 0.7 implementation uses experimental supplier endpoints. Five earlier plugins were removed before the first public release; see [removal guidance](docs/REMOVED_PLUGINS.md).
 
-The v0.1.0-rc.3 release targets final **Paseo 0.8.0**; v0.1.0-rc.2 remains pinned to 0.7.2. Update daemon, app and CLI together before using the final Composer pill API. The current [verification record](docs/verification/paseo-0.8.0-release.md) distinguishes source/compiler/CI checks, simulated UI checks and untested native runtime behavior. Previous beta-era user reports do not establish final-version certification.
+The v0.1.0-rc.4 source targets **Paseo 0.9.0-beta.2**; v0.1.0-rc.3 remains pinned to 0.8.0 and v0.1.0-rc.2 to 0.7.2. Update daemon, app and CLI together before installing 0.9 source. The current [verification record](docs/verification/paseo-0.9.0-beta.2.md) distinguishes source/compiler/CI checks and untested native runtime behavior. Previous 0.8 reports do not establish 0.9 certification.
 
 Before 1.0, breaking changes can occur in minor releases and are documented in the changelog. Release candidates are for evaluation. Only the latest release in the active minor line receives routine fixes; use a reviewed tag/commit and retain the previous source reference for rollback.
 
@@ -22,4 +22,4 @@ For published releases, if a plugin cannot follow upstream safely, set its catal
 
 Run `paseo plugin ls` against the intended host, then `paseo plugin logs <runtime-id>`. Check the plugin's prerequisites and host configuration. After editing directory source, use `paseo plugin reload <runtime-id>`; after updating Git source, use `paseo plugin update <runtime-id>`. Restarting the daemon is not a plugin troubleshooting step.
 
-On 0.8 use `paseo --host <target> plugin ls` for remote state and include both daemon and app versions in reports. A missing `requirements.paseo` is treated as `<0.8.0`; an old `index.ts` needs the full runtime-entry migration. Do not add a permissive requirement alone to bypass the error. Use compatible source or complete the migration. `plugin ls` reports runtime/source/commit/load errors; `plugin status` checks the remote update ref.
+Use `paseo --host <target> plugin ls` for remote state and include both daemon and app versions in reports. A missing `requirements.paseo` is treated as `<0.8.0`; an old `index.ts` needs the full runtime-entry migration. A `^0.8.0` manifest is rejected on 0.9. Use compatible source or complete the migration. `plugin ls` reports runtime/source/commit/load errors; `plugin status` checks the remote update ref.

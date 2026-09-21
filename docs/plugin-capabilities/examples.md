@@ -1,8 +1,8 @@
 # 실전 사용 예시
 
-이 문서는 Paseo **0.8.0** Plugin API로 **실제로 무엇을 만들 수 있는지** 빠르게 보여주는 아이디어 모음이다. 예제는 핵심 계약만 보여주며, 실제 Plugin에는 import, loading·empty·error 상태, 접근성 label과 cleanup을 함께 추가한다.
+이 문서는 Paseo **0.9.0-beta.2** Plugin API로 **실제로 무엇을 만들 수 있는지** 빠르게 보여주는 아이디어 모음이다. 예제는 핵심 계약만 보여주며, 실제 Plugin에는 import, loading·empty·error 상태, 접근성 label과 cleanup을 함께 추가한다.
 
-아래 예시는 현재 설치 가능한 제품 목록이나 실행 검증 결과가 아니다. 현재 구현의 버전과 검증 상태는 [호환성 기록](../COMPATIBILITY.md)과 [0.8 이관](../MIGRATION_0.8.md)을 따른다. 이 저장소의 배포 대상은 [Branch Garden과 Provider Usage](../../README.md#plugins)이며, 그 밖의 예시는 API 활용 아이디어다.
+아래 예시는 현재 설치 가능한 제품 목록이나 실행 검증 결과가 아니다. 현재 구현의 버전과 검증 상태는 [호환성 기록](../COMPATIBILITY.md)과 [0.9 이관](../MIGRATION_0.9.md)을 따른다. 이 저장소의 배포 대상은 [Branch Garden과 Provider Usage](../../README.md#plugins)이며, 그 밖의 예시는 API 활용 아이디어다.
 
 등록 코드의 `client`는 `index.client.tsx`의 `PluginClientContext`, `server`는 `index.server.ts`의 `PluginServerContext`다. Context·props·훅은 `/client`, server context는 `/server`, `defineRpc`·`defineSettings`·`defineAttachmentSource`·`PluginTheme`·`PluginCleanup`은 SDK root에서 가져온다. `Icon`·`Modal`·`useToast`·`copyText` 등 UI는 `/client/react-native`에서 가져온다. 예제의 미정의 업무 함수는 해당 `client/` 또는 `server/`에서 구현해 연결한다.
 

@@ -1,16 +1,16 @@
 # Provider Usage
 
-Release **v0.1.0-rc.3** targets final **Paseo 0.8.0**. See [final-version checks and remaining runtime limits](../../docs/verification/paseo-0.8.0-release.md). Screenshots below show the installed Paseo 0.8.0 Windows app.
+Release **v0.1.0-rc.4** targets **Paseo 0.9.0-beta.2**. See [0.9 checks and remaining runtime limits](../../docs/verification/paseo-0.9.0-beta.2.md). Screenshots below show the installed Paseo 0.8.0 Windows app.
 
 ```sh
-paseo plugin add NaruForge/Paseo-Plugin:plugins/provider-usage --ref v0.1.0-rc.3
+paseo plugin add NaruForge/Paseo-Plugin:plugins/provider-usage --ref v0.1.0-rc.4
 ```
 
 Show usage for every enabled Provider connection on the selected Host, using Paseo's official usage API. The optional sidebar and matching Agent Composer pills complement **Settings → Usage**.
 
 [Collection](../../README.md) · [Compatibility](../../docs/COMPATIBILITY.md) · [Install](#installation) · [Support](../../SUPPORT.md)
 
-**Current source targets Paseo 0.8.0.** Source and isolated UI checks are recorded in [verification](../../docs/verification/provider-usage-0.8-source.md). The user has completed Paseo 0.8 runtime verification; see the [runtime record and reported scope](../../docs/verification/paseo-0.8-runtime.md). The published `v0.1.0-rc.2` tag retains the previous 0.7.2 implementation.
+**Current source targets Paseo 0.9.0-beta.2.** See the [0.9 verification](../../docs/verification/paseo-0.9.0-beta.2.md). Historical 0.8 source checks are in [verification](../../docs/verification/provider-usage-0.8-source.md). The published `v0.1.0-rc.2` tag retains the previous 0.7.2 implementation.
 
 ## Screenshots
 
@@ -89,7 +89,7 @@ paseo plugin ls
 
 The tag is pinned and does not advance on update.
 
-For current source evaluation, both daemon and app must use final 0.8.0. Enable the Provider connections through normal Paseo tooling. Follow the [source checkout steps](../../README.md#evaluate-current-08-source), then run PowerShell from the repository root on the daemon host:
+For current source evaluation, both daemon and app must use 0.9.0-beta.2. Enable the Provider connections through normal Paseo tooling. Follow the [source checkout steps](../../README.md#evaluate-current-09-source), then run PowerShell from the repository root on the daemon host:
 
 ```powershell
 $repoRoot = (Resolve-Path .).Path
@@ -103,7 +103,7 @@ Expect `provider-usage` to be `running` without load errors. If the ID already e
 For Git source evaluation of **0.8** source, choose a reviewed published commit that contains this plugin. Do not use `v0.1.0-rc.2` for 0.8:
 
 ```sh
-paseo plugin add NaruForge/Paseo-Plugin:plugins/provider-usage --ref v0.1.0-rc.3
+paseo plugin add NaruForge/Paseo-Plugin:plugins/provider-usage --ref v0.1.0-rc.4
 ```
 
 The command pins the final-version collection tag. Git add/update/recovery for this plugin is recorded in the [Git source verification](../../docs/verification/paseo-0.8-git-source.md). See [Git installation](../../docs/GIT_INSTALLATION.md) before changing an installed ref.

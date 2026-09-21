@@ -34,6 +34,8 @@ export function registerPromptPills(client: PluginClientContext,
     if (loading) changed.add(id);
     if (update.kind === "remove") remove(id); else sync(update.agent);
   });
+  let observing = false;
+  let observation: { release(): Promise<void> } | undefined;
   async function refresh() {
     if (!active || loading) return;
     loading = true; changed.clear();
@@ -42,8 +44,16 @@ export function registerPromptPills(client: PluginClientContext,
     try {
       let cursor: string | undefined;
       do {
-        const page = await client.paseo.agents.list({ scope: "active", page: { limit: 200, cursor } });
-        if (!active) return;
+        const page = observing || cursor
+          ? await client.paseo.agents.list({ scope: "active", page: { limit: 200, cursor } })
+          : await client.paseo.agents.list({ scope: "active", page: { limit: 200 }, subscribe: {} });
+        observing = true;
+        if (page.subscription) observation = page.subscription;
+        if (!active) {
+          void observation?.release();
+          observation = undefined;
+          return;
+        }
         for (const { agent } of page.entries) {
           seen.add(agent.id);
           if (!changed.has(agent.id)) sync(agent);
@@ -63,6 +73,8 @@ export function registerPromptPills(client: PluginClientContext,
   return () => {
     if (!active) return;
     active = false; clearInterval(timer); unsubscribe();
+    void observation?.release();
+    observation = undefined;
     for (const id of pills.keys()) remove(id);
   };
 }

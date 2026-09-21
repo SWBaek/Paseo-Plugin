@@ -1,6 +1,6 @@
 # Backend와 Paseo SDK
 
-기준은 **Paseo 0.8.0**이다. 플러그인별 소스 상태는 [호환성 기록](../COMPATIBILITY.md), 파일 이동과 검증 순서는 [이관 안내](../MIGRATION_0.8.md)를 따른다. 이 문서는 [공식 reference](https://paseo.sh/docs/plugins/v0.8/reference)와 exact SDK 선언을 정적으로 대조한 참조 자료다.
+기준은 **Paseo 0.9.0-beta.2**이다. 플러그인별 소스 상태는 [호환성 기록](../COMPATIBILITY.md), 파일 이동과 검증 순서는 [이관 안내](../MIGRATION_0.9.md)를 따른다. 이 문서는 [공식 reference](https://paseo.sh/docs/plugins/reference)와 exact SDK 선언을 정적으로 대조한 참조 자료다.
 
 ## Runtime 경계
 
@@ -59,7 +59,7 @@ Handler context는 `{ paseo }`다. Lifecycle context의 `signal`을 일반 RPC h
 
 ## Paseo SDK 범위
 
-| 영역 | 대표 기능·0.8 추가 사항 |
+| 영역 | 대표 기능 |
 | --- | --- |
 | `projects` | `list`, 신규 `subscribe`로 Project 변경 관찰 |
 | `workspaces` | 목록·생성·열기·archive·구독, handle에서 Agent와 Terminal 접근 |
@@ -76,7 +76,7 @@ Handler context는 `{ paseo }`다. Lifecycle context의 `signal`을 일반 RPC h
 
 Beta.1에는 **`paseo.providers.listUsage(options?)`가 공개돼 있다**. Options는 optional `requestId`, 반환 payload는 `requestId`, `fetchedAt`, `providers`를 포함한다. Provider별 `status`·`planLabel`·사용량 `windows`, optional `balances`·`details`·`error`를 제공한다. `agent.lastUsage`의 직전 turn 토큰·비용·context 값과 구분한다.
 
-SDK는 host가 `providerUsageList` feature를 지원하지 않으면 update-host 오류로 reject한다. `providers.subscribe`는 catalog 구독이며 usage polling을 대체하지 않는다. 사용량 API를 호출하기 위해 새 Paseo client를 만들지 않고 제공된 `paseo`를 사용한다. 근거는 [공식 SDK reference](https://paseo.sh/docs/sdk/reference#clientproviders)와 exact client/protocol 0.8.0 선언이다.
+SDK는 host가 `providerUsageList` feature를 지원하지 않으면 update-host 오류로 reject한다. `providers.subscribe`는 catalog 구독이며 usage polling을 대체하지 않는다. 사용량 API를 호출하기 위해 새 Paseo client를 만들지 않고 제공된 `paseo`를 사용한다. 근거는 [공식 SDK reference](https://paseo.sh/docs/sdk/reference#clientproviders)와 exact client/protocol 0.9.0-beta.2 선언이다.
 
 Provider Usage 현재 소스는 이 SDK를 사용하고 `providers.snapshot()`의 `enabled` 연결만 표시한다. 직접 자격 증명·HTTP 코드는 제거했다. Beta.1의 5분 host cache와 force-refresh 부재, 인증·오류 정책 비교 및 실제 runtime 미검증 범위는 [검증 기록](../verification/provider-usage-0.8-source.md)을 따른다.
 
@@ -84,7 +84,7 @@ Terminal write/kill, permission 응답, Agent 생성과 config patch는 상태�
 
 ## Host 단위 설정 저장
 
-공유 `defineSettings({ id, scope: "host", version, schema, migrate? })`로 문서를 정의하고 `server.registerSettings(definition)`을 등록한다. Client는 `useSettings(definition)`을 사용한다. Schema는 `{}`를 완전한 기본 설정으로 parse할 수 있도록 defaults를 제공한다. `version`은 양의 정수 schema 버전이며 저장 revision과 별개다.
+공유 `defineSettings({ id, scope: "host", version, schema, migrate? })`로 문서를 정의하고 `server.registerSettings(definition)`을 등록한다. 0.9의 반환 handle은 `read()`와 `subscribe()`를 제공한다. Client는 `useSettings(definition)`을 사용한다. Schema는 `{}`를 완전한 기본 설정으로 parse할 수 있도록 defaults를 제공한다. `version`은 양의 정수 schema 버전이며 저장 revision과 별개다.
 
 | Hook 상태/동작 | 의미 |
 | --- | --- |
@@ -123,14 +123,14 @@ Context는 `{ paseo, signal }`이다. 호출 timeout은 30초이며 플러그인
 
 ## Provider contributions
 
-`server.registerProvider()`는 완전한 Provider를 등록한다. `ProviderRegistration`은 `/server/provider`, ACP adapter의 `runAcpProvider()`는 `/server/acp`에서 가져온다. Provider guide의 [구현·테스트 계약](https://paseo.sh/docs/plugins/v0.8/providers)을 따른다.
+`server.registerProvider()`는 완전한 Provider를 등록한다. `ProviderRegistration`은 `/server/provider`, ACP adapter의 `runAcpProvider()`는 `/server/acp`에서 가져온다. Provider guide의 [구현·테스트 계약](https://paseo.sh/docs/plugins/providers)을 따른다.
 
 - Connection의 `send()`는 입력 수락을 의미하고 turn 완료를 뜻하지 않는다. `onEvent()`로 상태 snapshot과 결과를 전달한다.
 - Message·structured command·steering은 `session.prompt`로 처리한다. Client message ID와 prompt result의 대응, permission, persistence, provider-created child session 관계를 지켜야 한다.
 - Session 설정은 providerOptions, 공개 toggle/select descriptor와 MCP 설정을 구분한다. Session open 시 외부 상태를 다시 읽는다.
 - Provider icon은 plugin 내부의 self-contained SVG 상대 경로이며 최대 64 KiB다. 일반 UI contribution의 Lucide 이름과 다르다.
 
-Provider Usage는 기존 Provider의 계획 사용량을 읽는 플러그인이다. 0.8 이관을 위해 새 Provider를 등록할 필요는 없다.
+Provider Usage는 기존 Provider의 계획 사용량을 읽는 플러그인이다. 0.9 이관을 위해 새 Provider를 등록할 필요는 없다.
 
 ## Cleanup, multi-host와 진단
 

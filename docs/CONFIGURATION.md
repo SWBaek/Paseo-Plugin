@@ -1,6 +1,6 @@
 # Configuration
 
-No plugin requires a custom host settings file. This guide describes current 0.8 source; for the published 0.7 release use its [versioned guides](https://github.com/NaruForge/Paseo-Plugin/tree/v0.1.0-rc.2/plugins).
+No plugin requires a custom host settings file. This guide describes current 0.9 source; for the published 0.8 release use [v0.1.0-rc.3](https://github.com/NaruForge/Paseo-Plugin/tree/v0.1.0-rc.3/plugins) and for 0.7 use [v0.1.0-rc.2](https://github.com/NaruForge/Paseo-Plugin/tree/v0.1.0-rc.2/plugins).
 
 - Branch Garden reads the selected daemon's Paseo project/workspace registry and uses its installed Git executable. See the [plugin guide](../plugins/branch-garden/README.md).
 - Provider Usage reads enabled connections and usage through Paseo. The daemon owns authentication and provider HTTP; the plugin neither reads nor writes credentials. See the [plugin guide](../plugins/provider-usage/README.md).
@@ -33,9 +33,9 @@ Select a Project in Settings → Plugins → Command Deck. Add a name, one Power
 
 The installation identifier is retained even when the command list is empty so existing terminals remain discoverable. Removing/reinstalling the plugin deletes that identifier and saved commands; terminals are not automatically killed and the new installation will not adopt them. Stop or inspect them in the Workspace terminal before removal. Never put secrets in commands or settings.
 
-## Paseo 0.8 settings contract
+## Paseo 0.9 settings contract
 
-All four plugin sources and v0.1.0-rc.3 target final 0.8.0. Upgrade daemon, app and CLI from beta.1 before installing; its pill API is incompatible. Provider Usage registers **Provider Usage Settings** under Settings → Plugins, using `addSettingsScreen` and host-scoped `defineSettings` → `registerSettings` → `useSettings`; see the [settings reference](plugin-capabilities/backend-and-sdk.md#host-단위-설정-저장) and [migration plan](MIGRATION_0.8.md).
+All four plugin sources and v0.1.0-rc.4 target 0.9.0-beta.2. Upgrade daemon, app and CLI from 0.8.0 before installing; `^0.8.0` manifests are rejected. Provider Usage registers **Provider Usage Settings** under Settings → Plugins, using `addSettingsScreen` and host-scoped `defineSettings` → `registerSettings` → `useSettings`; see the [settings reference](plugin-capabilities/backend-and-sdk.md#host-단위-설정-저장) and [0.9 migration plan](MIGRATION_0.9.md).
 
 Built-in values are shared by authorized clients of the same host and installation, validated against a schema, and saved with revision conflict detection. They survive reload/disable/update and daemon restart, but **removing the installation deletes its values**. Reinstalling starts from defaults. They are ordinary JSON, not a credential vault, and provide neither per-user storage nor cross-host synchronization. A settings screen does not replace Paseo's native provider usage screen or expose a generic route into it.
 

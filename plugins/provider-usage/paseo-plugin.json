@@ -1,6 +1,7 @@
 {
   "id": "provider-usage",
+  "description": "Inspect enabled Provider usage through Paseo's official usage API.",
   "requirements": {
-    "paseo": "^0.8.0"
+    "paseo": "^0.9.0"
   }
 }

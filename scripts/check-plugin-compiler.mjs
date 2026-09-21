@@ -13,8 +13,8 @@ const serverDirectory = path.resolve(serverArgument);
 const json = async (directory) => JSON.parse(await readFile(path.join(directory, "package.json"), "utf8"));
 const plugin = await json(pluginDirectory);
 const server = await json(serverDirectory);
-if (server.name !== "@getpaseo/server" || server.version !== plugin.devDependencies?.["@getpaseo/plugin"] || server.version !== "0.8.0") {
-  throw new Error("Supply @getpaseo/server 0.8.0 matching the plugin's exact SDK. Recheck the private compiler API before changing versions.");
+if (server.name !== "@getpaseo/server" || server.version !== plugin.devDependencies?.["@getpaseo/plugin"] || server.version !== "0.9.0-beta.2") {
+  throw new Error("Supply @getpaseo/server 0.9.0-beta.2 matching the plugin's exact SDK. Recheck the private compiler API before changing versions.");
 }
 const { compilePlugin } = await import(pathToFileURL(path.join(serverDirectory, "dist/server/server/plugins/compiler.js")).href);
 const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), "paseo-plugin-compiler-"));

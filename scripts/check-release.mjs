@@ -25,7 +25,7 @@ for (const directory of directories) {
   if (lock.packages?.[`plugins/${directory}`]?.version !== workspace.version) errors.push(`${directory}: lockfile version mismatch.`);
   const { version: paseoVersion, errors: paseoErrors } = validatePaseoMetadata({ catalog, entry, pkg, manifest, locked: lock.packages?.[`plugins/${directory}`] });
   errors.push(...paseoErrors.map((error) => `${directory}: ${error}`));
-  if (paseoVersion?.startsWith("0.8.")) {
+  if (paseoVersion?.startsWith("0.8.") || paseoVersion?.startsWith("0.9.")) {
     const files = await readdir(new URL(`plugins/${directory}/`, root));
     errors.push(...validateRuntimeEntries(files).map((error) => `${directory}: ${error}`));
   }

@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { collectImports, importError } from "./check-git-source-imports.mjs";
 
 const beta = "0.8.0-beta.1";
+const nine = "0.9.0-beta.2";
 test("reads imports without confusing comments, strings, and type-only forms", () => {
   assert.deepEqual(collectImports(`
     // import "ignored";
@@ -25,16 +26,18 @@ test("reads imports without confusing comments, strings, and type-only forms", (
   ]);
 });
 
-test("accepts the separate 0.8 runtime contracts and 0.7 imports", () => {
-  for (const [file, name, typeOnly] of [
-    ["index.client.tsx", "./client/main", false],
-    ["client/main.tsx", "../shared/contract", false],
-    ["client/main.tsx", "@getpaseo/plugin/client/react-native", false],
-    ["shared/contract.ts", "@getpaseo/plugin", false],
-    ["index.server.ts", "./server/scan", false],
-    ["server/scan.ts", "node:child_process", false],
-    ["index.server.ts", "@getpaseo/plugin/server", true],
-  ]) assert.equal(importError({ name, typeOnly }, file, beta), null);
+test("accepts the separate 0.8/0.9 runtime contracts and 0.7 imports", () => {
+  for (const sdk of [beta, nine]) {
+    for (const [file, name, typeOnly] of [
+      ["index.client.tsx", "./client/main", false],
+      ["client/main.tsx", "../shared/contract", false],
+      ["client/main.tsx", "@getpaseo/plugin/client/react-native", false],
+      ["shared/contract.ts", "@getpaseo/plugin", false],
+      ["index.server.ts", "./server/scan", false],
+      ["server/scan.ts", "node:child_process", false],
+      ["index.server.ts", "@getpaseo/plugin/server", true],
+    ]) assert.equal(importError({ name, typeOnly }, file, sdk), null);
+  }
   assert.equal(importError({ name: "@getpaseo/plugin/react-native" }, "main.client.tsx", "0.7.2"), null);
   assert.equal(importError({ name: "@getpaseo/plugin/server" }, "usage.shared.ts", "0.7.2"), null);
 });
@@ -55,7 +58,9 @@ test("rejects runtime leaks, including type-only and transitive shared edges", (
     ["index.ts", "./shared/contract"],
     ["index.server.ts", "@getpaseo/client"],
   ]) {
-    for (const typeOnly of [false, true]) assert.ok(importError({ name, typeOnly }, file, beta), `${file}: ${name}`);
+    for (const sdk of [beta, nine]) {
+      for (const typeOnly of [false, true]) assert.ok(importError({ name, typeOnly }, file, sdk), `${sdk} ${file}: ${name}`);
+    }
   }
   assert.ok(importError({ name: "@getpaseo/client", typeOnly: false }, "index.server.ts", beta));
   assert.ok(importError({ name: "uninstalled-package" }, "server/scan.ts", beta));

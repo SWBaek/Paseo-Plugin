@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "version": "0.1.0-rc.3",
-  "paseoVersion": "0.8.0",
+  "version": "0.1.0-rc.4",
+  "paseoVersion": "0.9.0-beta.2",
   "plugins": [
     {
       "id": "branch-garden",
-      "paseoVersion": "0.8.0",
+      "paseoVersion": "0.9.0-beta.2",
       "name": "Branch Garden",
       "path": "plugins/branch-garden",
       "description": "Inspect registered Git projects, workspaces, branches and worktrees without changing Git state.",
@@ -19,6 +19,7 @@
     },
     {
       "id": "provider-usage",
+      "paseoVersion": "0.9.0-beta.2",
       "name": "Provider Usage",
       "path": "plugins/provider-usage",
       "description": "Inspect enabled Provider usage through Paseo's official usage API.",
@@ -32,7 +33,7 @@
     },
     {
       "id": "prompt-palette",
-      "paseoVersion": "0.8.0",
+      "paseoVersion": "0.9.0-beta.2",
       "name": "Prompt Palette",
       "path": "plugins/prompt-palette",
       "description": "Save reusable prompts in Host Settings, preview and send them to the current Agent.",
@@ -47,7 +48,7 @@
     {
       "id": "command-deck",
       "name": "Command Deck",
-      "paseoVersion": "0.8.0",
+      "paseoVersion": "0.9.0-beta.2",
       "path": "plugins/command-deck",
       "description": "Save Project PowerShell commands and run, inspect and stop their terminals from the Composer on Windows.",
       "maturity": "experimental",
