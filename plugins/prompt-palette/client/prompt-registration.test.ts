@@ -2,13 +2,18 @@ import type { PluginClientContext, PluginComposerPillContribution } from "@getpa
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { registerPromptPills } from "./prompt-registration";
 type Update = Parameters<Parameters<PluginClientContext["paseo"]["agents"]["subscribe"]>[0]>[0];
-type Page = Awaited<ReturnType<PluginClientContext["paseo"]["agents"]["list"]>>;
-const page = (ids: string[], cursor: string | null = null) => ({
+type Page = {
+  requestId: string;
+  entries: Array<{ agent: { id: string; workspaceId?: string } }>;
+  pageInfo: { nextCursor: string | null; prevCursor: null; hasMore: boolean };
+};
+type ListFn = (options?: { scope?: string; page?: { limit?: number; cursor?: string }; subscribe?: object }) => Promise<Page>;
+const page = (ids: string[], cursor: string | null = null): Page => ({
   requestId: "test", entries: ids.map(id => ({ agent: { id, workspaceId: "w" } })),
   pageInfo: { nextCursor: cursor, prevCursor: null, hasMore: !!cursor },
-}) as Page;
+});
 const upsert = (id: string, workspaceId = "w", archivedAt: string | null = null) => ({ kind: "upsert", agent: { id, workspaceId, archivedAt } }) as Update;
-function setup(list = vi.fn<PluginClientContext["paseo"]["agents"]["list"]>(async () => page([]))) {
+function setup(list = vi.fn<ListFn>(async () => page([]))) {
   let emit!: (u: Update) => void;
   const unsubscribe = vi.fn();
   const entries: PluginComposerPillContribution[] = [];
@@ -42,11 +47,13 @@ describe("prompt registrations", () => {
   });
   it("loads every page and registers new providers without filtering", async () => {
     vi.useFakeTimers();
-    const list = vi.fn<PluginClientContext["paseo"]["agents"]["list"]>()
+    const list = vi.fn<ListFn>()
       .mockResolvedValueOnce(page(["a"], "next")).mockResolvedValueOnce(page(["b"]));
     const t = setup(list); await vi.advanceTimersByTimeAsync(0);
     expect(t.entries.map(p => p.agentId)).toEqual(["a", "b"]);
+    expect(list.mock.calls[0][0]).toMatchObject({ scope: "active", subscribe: {} });
     expect(list.mock.calls[1][0]?.page?.cursor).toBe("next");
+    expect(list.mock.calls[1][0]?.subscribe).toBeUndefined();
     t.emit(upsert("new")); expect(t.entries.at(-1)?.agentId).toBe("new");
     t.cleanup(); expect(vi.getTimerCount()).toBe(0);
   });
@@ -76,7 +83,7 @@ describe("prompt registrations", () => {
   });
   it("retries failed enumeration and removes pills missing from a complete refresh", async () => {
     vi.useFakeTimers();
-    const list = vi.fn<PluginClientContext["paseo"]["agents"]["list"]>()
+    const list = vi.fn<ListFn>()
       .mockRejectedValueOnce(Error("offline")).mockResolvedValueOnce(page(["a"])).mockResolvedValue(page([]));
     const t = setup(list); await vi.advanceTimersByTimeAsync(30000);
     expect(t.entries).toHaveLength(1);
@@ -97,7 +104,7 @@ describe("prompt registrations", () => {
     vi.useFakeTimers();
     const malformed = page([]);
     malformed.pageInfo.hasMore = true;
-    const list = vi.fn<PluginClientContext["paseo"]["agents"]["list"]>()
+    const list = vi.fn<ListFn>()
       .mockResolvedValueOnce(page(["a"])).mockResolvedValue(malformed);
     const t = setup(list); await vi.advanceTimersByTimeAsync(30000);
     expect(t.entries).toHaveLength(1);

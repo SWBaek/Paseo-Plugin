@@ -9,6 +9,7 @@ export default function contribute(client: PluginClientContext) {
     client.addSettingsScreen({ id: "commands", title: "Command Deck", icon: "Terminal",
       Component: props => <CommandSettingsScreen {...props} initialWorkspace={initialWorkspace} /> }),
     client.addWorkspacePanel({ id: "commands", title: "Commands", icon: "Terminal", context: "workspace",
+      locations: ["workspace", "explorer"],
       Component: props => <CommandPanel {...props} openSettings={() => { initialWorkspace = props.workspaceId; client.openSettings("commands"); }} /> }),
     client.addCommandCenterItem({ id: "open-commands", title: "Open workspace commands", icon: "Terminal", context: "workspace",
       onSelect: context => context.openPanel("commands") }),

@@ -7,7 +7,7 @@ function setup() {
   const contributions: PluginComposerPillContribution[] = [];
   const removers: ReturnType<typeof vi.fn>[] = [];
   const unsubscribe = vi.fn();
-  const list = vi.fn(async () => ({ entries: [{ agent: { id: "a", workspaceId: "w" } as Agent }], pageInfo: { hasMore: false, nextCursor: null as string | null } }));
+  const list = vi.fn(async (_options?: { scope?: string; page?: { limit?: number; cursor?: string }; subscribe?: object }) => ({ entries: [{ agent: { id: "a", workspaceId: "w" } as Agent }], pageInfo: { hasMore: false, nextCursor: null as string | null } }));
   const openPanel = vi.fn();
   const client = { paseo: { agents: { list, subscribe: (callback: typeof emit) => { emit = callback; return unsubscribe; } } },
     openPanel, addComposerPill: (value: PluginComposerPillContribution) => { contributions.push(value); const remove = vi.fn(); removers.push(remove); return { remove, update: vi.fn() }; } } as unknown as PluginClientContext;
@@ -18,8 +18,10 @@ describe("command pill lifetime", () => {
   it("registers once, opens the workspace panel and cleans up idempotently", async () => {
     vi.useFakeTimers(); const f = setup(); const dispose = registerCommandPills(f.client);
     await Promise.resolve(); expect(f.contributions).toHaveLength(1);
+    expect(f.list.mock.calls[0][0]).toMatchObject({ scope: "active", subscribe: {} });
     press(f.contributions[0]); expect(f.openPanel).toHaveBeenCalledWith("commands", { workspaceId: "w" });
     await vi.advanceTimersByTimeAsync(30000); expect(f.contributions).toHaveLength(1);
+    expect(f.list.mock.calls[1][0]?.subscribe).toBeUndefined();
     dispose(); dispose(); expect(f.removers[0]).toHaveBeenCalledTimes(1); expect(f.unsubscribe).toHaveBeenCalledTimes(1);
     await vi.advanceTimersByTimeAsync(60000); expect(f.list).toHaveBeenCalledTimes(2);
   });

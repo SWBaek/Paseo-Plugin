@@ -1,6 +1,6 @@
 # 지원 경계
 
-이 문서는 “화면에서 보이게 만들 수 있다”와 “Paseo가 그 위치를 정식 Plugin slot으로 공개했다”를 구분한다. 기준은 **Paseo 0.8.0** 공식 문서와 exact SDK declaration이다. 플러그인별 소스 버전은 [호환성 기록](../COMPATIBILITY.md)을 따르며, 이 표는 앱 실행 인증이 아니다.
+이 문서는 “화면에서 보이게 만들 수 있다”와 “Paseo가 그 위치를 정식 Plugin slot으로 공개했다”를 구분한다. 기준은 **Paseo 0.9.0-beta.2** 공식 문서와 exact SDK declaration이다. 플러그인별 소스 버전은 [호환성 기록](../COMPATIBILITY.md)을 따르며, 이 표는 앱 실행 인증이 아니다.
 
 ## 판정 기준
 
@@ -114,7 +114,7 @@
 
 Settings는 host·설치 범위이며 remove 시 삭제된다. User/device/cross-host 동기화나 secret vault를 제공하지 않는다. Durable timeline도 일반 이벤트 bus가 아니고 lifecycle hook도 영속 작업 큐가 아니다.
 
-`requirements.paseo`는 daemon과 app에서 각각 검사한다. Beta 버전은 stable core에 맞는 범위를 만족할 수 있다. 이관 후 Manifest의 권장 범위 `^0.8.0`은 beta.1을 포함하며, SDK dependency는 exact 0.8.0으로 고정해 대조한다. 새 pill API는 beta.1에 없으므로 daemon·app 모두 정식판을 사용한다. 현재 source dependency는 플러그인별 catalog와 package에 기록한다. Manifest만 추가하거나 ambient declaration으로 신 API를 만들어내지 않는다. [이관 안내](../MIGRATION_0.8.md)와 [호환성 기록](../COMPATIBILITY.md)을 확인한다.
+`requirements.paseo`는 daemon과 app에서 각각 검사한다. Beta 버전은 stable core에 맞는 범위를 만족할 수 있다. Manifest의 권장 범위 `^0.9.0`은 0.9.0-beta를 포함하며, SDK dependency는 exact 0.9.0-beta.2로 고정해 대조한다. `^0.8.0`은 0.9에서 거부된다. 현재 source dependency는 플러그인별 catalog와 package에 기록한다. Manifest만 추가하거나 ambient declaration으로 신 API를 만들어내지 않는다. [이관 안내](../MIGRATION_0.9.md)와 [호환성 기록](../COMPATIBILITY.md)을 확인한다.
 
 ## 관련 문서
 
@@ -122,4 +122,4 @@ Settings는 host·설치 범위이며 remove 시 삭제된다. User/device/cross
 - [전체 기능표](README.md)
 - [UI 기여 지점](ui-contributions.md)
 - [Backend와 Paseo SDK](backend-and-sdk.md)
-- [v0.8 Plugin reference](https://paseo.sh/docs/plugins/v0.8/reference)
+- [Plugin reference](https://paseo.sh/docs/plugins/reference)

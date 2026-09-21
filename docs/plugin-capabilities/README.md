@@ -1,11 +1,11 @@
 # Paseo Plugin Capabilities
 
-이 문서는 **Paseo `0.8.0`**의 공개 플러그인 계약을 정리한다. 플러그인별 소스 이관 상태와 기존 배포 태그의 대상 버전은 [호환성 기록](../COMPATIBILITY.md)을 따른다. 이 기능표는 0.8 실행 검증 결과나 배포 플러그인 목록이 아니다. 유지보수 대상은 [Branch Garden과 Provider Usage](../../README.md#plugins) 두 개이며, 이관은 [#77](https://github.com/NaruForge/Paseo-Plugin/issues/77)에서 추적한다.
+이 문서는 **Paseo `0.9.0-beta.2`**의 공개 플러그인 계약을 정리한다. 플러그인별 소스 이관 상태와 기존 배포 태그의 대상 버전은 [호환성 기록](../COMPATIBILITY.md)을 따른다. 이 기능표는 0.9 실행 검증 결과나 배포 플러그인 목록이 아니다. 유지보수 대상은 [Branch Garden과 Provider Usage](../../README.md#plugins) 두 개이며, 0.9 이관은 [#121](https://github.com/NaruForge/Paseo-Plugin/issues/121)에서 추적한다.
 
-- 대조일: 2026-09-10 (Asia/Seoul)
-- 문서: [v0.8 quickstart](https://paseo.sh/docs/plugins/v0.8), [reference](https://paseo.sh/docs/plugins/v0.8/reference), [migration](https://paseo.sh/docs/plugins/v0.8/migration), [provider guide](https://paseo.sh/docs/plugins/v0.8/providers)
-- 정적 계약: npm에 배포된 exact `@getpaseo/plugin`, `@getpaseo/client`, `@getpaseo/protocol`, `@getpaseo/cli` **0.8.0**의 선언과 scaffold 생성 코드
-- 검증 한계: 이번 조사는 문서·package 정적 대조다. 기능표 자체는 실행 인증이 아니다. 정식 CLI init·compiler 및 플러그인 검증은 [정식판 기록](../verification/paseo-0.8.0-release.md)에서 구분한다.
+- 대조일: 2026-09-21 (Asia/Seoul)
+- 문서: [quickstart](https://paseo.sh/docs/plugins), [reference](https://paseo.sh/docs/plugins/reference), [0.9 이관](../MIGRATION_0.9.md), [provider guide](https://paseo.sh/docs/plugins/providers)
+- 정적 계약: npm에 배포된 exact `@getpaseo/plugin`, `@getpaseo/client`, `@getpaseo/protocol` **0.9.0-beta.2**의 선언
+- 검증 한계: 이번 조사는 문서·package 정적 대조다. 기능표 자체는 실행 인증이 아니다. CLI init·compiler 및 플러그인 검증은 [0.9 기록](../verification/paseo-0.9.0-beta.2.md)에서 구분한다.
 
 공식 문서도 후속 버전에서 바뀔 수 있다. 실제 구현에서는 대상 CLI가 생성한 fresh scaffold와 같은 exact SDK 선언을 다시 대조한다. 현재 0.7 소스를 유지보수할 때는 [v0.7 reference](https://paseo.sh/docs/plugins/v0.7/reference)를 사용한다.
 
@@ -54,14 +54,14 @@
 
 ## Entry context 등록 목록
 
-exact 0.8.0 선언에서 확인한 등록 메서드다. 대부분의 client `add*`는 idempotent 제거 함수를 반환한다. `addComposerPill`과 `addHeaderButton`은 `{ update, remove }` handle을 반환한다.
+exact 0.9.0-beta.2 선언에서 확인한 등록 메서드다. 대부분의 client `add*`는 idempotent 제거 함수를 반환한다. `addComposerPill`과 `addHeaderButton`은 `{ update, remove }` handle을 반환한다.
 
 | Context | 등록 메서드 |
 | --- | --- |
 | `PluginClientContext` | `addSettingsScreen`, `addSurface`, `addSidebarItem`, `addWorkspacePanel`, `addCommandCenterItem`, `addSlashCommand`, `addComposerPill`, `addHeaderButton`, `addAttachmentSource`, `addTheme`, `addTimelineTransformer`, `addTimelineRenderer` |
 | `PluginServerContext` | `handle`, `registerSettings`, `registerProvider`, `on`, `before` |
 
-Client context에는 `paseo`, typed `rpc`, `openSurface`, `openSettings`, 명시적인 workspace/agent 문맥을 받는 `openPanel`도 있다. Server의 `handle`·`registerSettings`·`registerProvider`는 `void`, `on`·`before`는 제거 함수를 반환한다. 두 entry는 각각 cleanup을 반환한다.
+Client context에는 `paseo`, typed `rpc`, `openSurface`, `openSettings`, 명시적인 workspace/agent 문맥을 받는 `openPanel`도 있다. `useHosts`와 `getPaseoClient(serverId)`, `openExternalUrl`은 0.9에서 추가된 client helper다. Server의 `handle`·`registerProvider`는 `void`, `registerSettings`는 `{ read, subscribe }` handle, `on`·`before`는 제거 함수를 반환한다. 두 entry는 각각 cleanup을 반환한다.
 
 ## 문서 구성
 
@@ -69,10 +69,11 @@ Client context에는 `paseo`, typed `rpc`, `openSurface`, `openSettings`, 명시
 - [UI 기여 지점](ui-contributions.md): 화면·panel·pill·slash·timeline·settings·modal
 - [Backend와 Paseo SDK](backend-and-sdk.md): 런타임, RPC, 설정 저장, provider, lifecycle, SDK
 - [지원 경계](limitations.md): 지원 범위와 여전히 없는 기여 위치
-- [0.8 이관 안내](../MIGRATION_0.8.md): 현재 소스의 이관 순서와 검증·배포 조건
+- [0.9 이관 안내](../MIGRATION_0.9.md): 현재 소스의 이관 순서와 검증·배포 조건
+- [0.8 이관 안내](../MIGRATION_0.8.md): 0.8 runtime entry와 pill 계약 보존 기록
 
 ## 근거와 재대조
 
-[0.8.0 릴리스](https://github.com/getpaseo/paseo/releases/tag/v0.8.0), [SDK 소스](https://github.com/getpaseo/paseo/tree/v0.8.0/packages/plugin), [공식 예제](https://github.com/getpaseo/paseo/tree/v0.8.0/plugin-examples)를 함께 사용한다. SDK root의 `PluginTheme` 같은 공유 타입과 client 전용 타입을 구분하며 type import에도 런타임 경계를 적용한다. `/client/host`는 앱 내부용이다.
+[0.9.0-beta.2 릴리스](https://github.com/getpaseo/paseo/releases/tag/v0.9.0-beta.2), [SDK 소스](https://github.com/getpaseo/paseo/tree/v0.9.0-beta.2/packages/plugin), [공식 예제](https://github.com/getpaseo/paseo/tree/v0.9.0-beta.2/plugin-examples)를 함께 사용한다. SDK root의 `PluginTheme` 같은 공유 타입과 client 전용 타입을 구분하며 type import에도 런타임 경계를 적용한다. `/client/host`는 앱 내부용이다.
 
 후속 버전으로 올릴 때는 CLI·daemon·app 버전을 각각 기록하고 fresh scaffold, exact 선언, 공식 문서를 다시 비교한다. 타입 검사만으로 host compiler 경계나 runtime 호환성을 인증하지 않는다. 실제 증거는 [Compatibility](../COMPATIBILITY.md)에 연결한다.

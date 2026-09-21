@@ -83,6 +83,7 @@ describe("usage composer pill registration", () => {
     registerUsagePills(context.client, () => TestPill, context.refreshUsage);
     await Promise.resolve();
 
+    expect(context.list).toHaveBeenCalledWith({ scope: "active", page: { limit: 200 }, subscribe: {} });
     expect(context.addComposerPill).toHaveBeenCalledTimes(1);
     expect(context.registrations[0]).toMatchObject({
       id: "usage",

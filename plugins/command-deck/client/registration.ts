@@ -22,6 +22,8 @@ export function registerCommandPills(client: PluginClientContext) {
     if (loading) touched.add(id);
     if (update.kind === "remove") remove(id); else sync(update.agent);
   });
+  let observing = false;
+  let observation: { release(): Promise<void> } | undefined;
   async function refresh() {
     if (!active || loading) return;
     loading = true; touched.clear();
@@ -29,8 +31,16 @@ export function registerCommandPills(client: PluginClientContext) {
     try {
       let cursor: string | undefined;
       do {
-        const page = await client.paseo.agents.list({ scope: "active", page: { limit: 200, cursor } });
-        if (!active) return;
+        const page = observing || cursor
+          ? await client.paseo.agents.list({ scope: "active", page: { limit: 200, cursor } })
+          : await client.paseo.agents.list({ scope: "active", page: { limit: 200 }, subscribe: {} });
+        observing = true;
+        if (page.subscription) observation = page.subscription;
+        if (!active) {
+          void observation?.release();
+          observation = undefined;
+          return;
+        }
         for (const { agent } of page.entries) { seen.add(agent.id); if (!touched.has(agent.id)) sync(agent); }
         if (page.pageInfo.hasMore && !page.pageInfo.nextCursor) throw new Error("Incomplete Agent listing");
         cursor = page.pageInfo.hasMore ? page.pageInfo.nextCursor ?? undefined : undefined;
@@ -44,6 +54,9 @@ export function registerCommandPills(client: PluginClientContext) {
   void refresh(); const timer = setInterval(() => { void refresh(); }, 30000);
   return () => {
     if (!active) return;
-    active = false; clearInterval(timer); unsubscribe(); for (const id of pills.keys()) remove(id);
+    active = false; clearInterval(timer); unsubscribe();
+    void observation?.release();
+    observation = undefined;
+    for (const id of pills.keys()) remove(id);
   };
 }

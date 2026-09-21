@@ -11,9 +11,9 @@ All four current plugins use one collection version and one Git tag (`v<version>
 
 ## Validate runtime safely
 
-For **Paseo 0.8.0 final**, apply the [migration checklist](MIGRATION_0.8.md). All four plugins use exact final SDKs and the three pills use `button` descriptors with `update/remove` handles. Review the [final-version evidence](verification/paseo-0.8.0-release.md); beta-era runtime reports do not certify this changed API. Keep v0.1.0-rc.2 for 0.7.2 and never move an existing tag.
+For **Paseo 0.9.0-beta.2**, apply the [0.9 migration checklist](MIGRATION_0.9.md). All four plugins use exact 0.9.0-beta.2 SDKs and the three pills keep `button` descriptors with `update/remove` handles plus an owned Agent directory observation. Review the [0.9 evidence](verification/paseo-0.9.0-beta.2.md); 0.8 runtime reports do not certify this version. Keep v0.1.0-rc.2 for 0.7.2 and v0.1.0-rc.3 for 0.8.0; never move an existing tag.
 
-Require separate runtime entries, runtime import boundaries, `requirements.paseo: ^0.8.0`, and matching exact 0.8.0 SDK/client/catalog/lockfile values. Validate daemon and app independently. For remote operations use `paseo --host <target> plugin ls`. A source/compiler check does not establish native app support. A prerelease may publish with documented runtime limitations; a stable release still requires the independent review and runtime evidence above.
+Require separate runtime entries, runtime import boundaries, `requirements.paseo: ^0.9.0`, and matching exact 0.9.0-beta.2 SDK/client/catalog/lockfile values. Validate daemon and app independently. For remote operations use `paseo --host <target> plugin ls`. A source/compiler check does not establish native app support. A prerelease may publish with documented runtime limitations; a stable release still requires the independent review and runtime evidence above.
 
 Use an authorized test daemon with plugins already enabled. Check `paseo plugin ls`; use unique runtime IDs. A Git branch candidate can be tested before a tag exists:
 

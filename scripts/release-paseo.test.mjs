@@ -39,6 +39,14 @@ test("a final 0.8 entry requires the migrated manifest even when the SDK matches
   assert.deepEqual(validatePaseoMetadata(data).errors, ["migrated manifest must declare ^0.8.0."]);
 });
 
+test("a 0.9 entry requires ^0.9.0 and exact SDK/catalog values", () => {
+  const data = metadata("0.9.0-beta.2");
+  data.manifest = { requirements: { paseo: "^0.9.0" } };
+  assert.deepEqual(validatePaseoMetadata(data), { version: "0.9.0-beta.2", errors: [] });
+  data.manifest = { requirements: { paseo: "^0.8.0" } };
+  assert.deepEqual(validatePaseoMetadata(data).errors, ["migrated manifest must declare ^0.9.0."]);
+});
+
 test("runtime entries support single-runtime plugins and reject half-migrations", () => {
   for (const files of [["index.client.tsx", "index.server.ts"], ["index.client.ts"], ["index.server.tsx"]]) {
     assert.deepEqual(validateRuntimeEntries(files), []);

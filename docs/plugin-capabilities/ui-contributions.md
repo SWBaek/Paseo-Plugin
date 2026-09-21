@@ -1,6 +1,6 @@
 # UI 기여 지점
 
-이 문서는 **Paseo `0.8.0`**가 Plugin에 열어 둔 UI 위치를 다룬다. 아래 내용은 [0.8 이관](../MIGRATION_0.8.md)에 적용할 계약이며, 실제 플러그인별 이관·검증 상태는 [호환성 기록](../COMPATIBILITY.md)을 따른다. Plugin UI는 React Native component이며 desktop, browser, iOS, Android에서 같은 기여 계약을 사용한다.
+이 문서는 **Paseo `0.9.0-beta.2`**가 Plugin에 열어 둔 UI 위치를 다룬다. 아래 내용은 [0.9 이관](../MIGRATION_0.9.md)에 적용할 계약이며, 실제 플러그인별 이관·검증 상태는 [호환성 기록](../COMPATIBILITY.md)을 따른다. Plugin UI는 React Native component이며 desktop, browser, iOS, Android에서 같은 기여 계약을 사용한다.
 
 등록 예제의 `client`는 `index.client.tsx`의 `PluginClientContext`다. Context·props·훅은 `@getpaseo/plugin/client`, `PluginTheme` 같은 공유 타입은 `@getpaseo/plugin`, host UI는 `/client/react-native`에서 가져온다. 별도 파일의 코드 조각은 각 런타임 entry에 배치한다.
 

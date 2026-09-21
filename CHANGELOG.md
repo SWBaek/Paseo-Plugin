@@ -2,6 +2,19 @@
 
 The collection uses one version/tag for all supported plugins. Published releases are listed on [GitHub](https://github.com/NaruForge/Paseo-Plugin/releases).
 
+## 0.1.0-rc.4 — 2026-09-21 (prerelease)
+
+This collection targets **Paseo 0.9.0-beta.2** and includes all four plugins. Upgrade the daemon, app and CLI before installing: `^0.8.0` manifests are rejected on 0.9. Paseo 0.8.0 users keep `v0.1.0-rc.3`. Paseo 0.7.2 users keep `v0.1.0-rc.2`.
+
+- Pin all Plugin SDKs, Branch Garden's client SDK and the release catalog to exact 0.9.0-beta.2. Set `requirements.paseo` to `^0.9.0`. Compile all four plugins without `node_modules` using the 0.9.0-beta.2 host compiler.
+- Own the Agent directory observation for Provider Usage, Prompt Palette and Command Deck with a single `list({ subscribe: {} })`, then `release` it on cleanup. Keep local `agents.subscribe` listeners and the 30-second Prompt Palette/Command Deck refresh.
+- Advertise Command Deck's panel in both workspace and Explorer locations. Add optional `description` fields to each `paseo-plugin.json`.
+- Update English/Korean installation, compatibility, capabilities and release documentation. Keep historical 0.8 screenshots and verification reports at their original versions.
+
+The collection remains a **prerelease**. SDK/compiler and source tests do not certify live 0.9 app/mobile behavior or Git activation/update. See the [0.9.0-beta.2 verification record](docs/verification/paseo-0.9.0-beta.2.md).
+
+Install one plugin with `paseo plugin add NaruForge/Paseo-Plugin:plugins/<plugin-id> --ref v0.1.0-rc.4`. Tags stay pinned. Before remove/re-add when changing a pinned ref, copy Provider Usage preferences, Prompt Palette prompts and Command Deck commands: removing an installation deletes its Settings and Command Deck's installation identity. See [upgrade/rollback guidance](docs/GIT_INSTALLATION.md).
+
 ## 0.1.0-rc.3 — 2026-09-10 (prerelease)
 
 This collection targets **final Paseo 0.8.0** and includes all four plugins. Upgrade the daemon, app and CLI before installing: beta.1 does not have the final Composer pill API. Paseo 0.7.2 users must keep `v0.1.0-rc.2`.

@@ -2,7 +2,7 @@
 export function validatePaseoMetadata({ catalog, entry, pkg, manifest, locked }) {
   const version = entry?.paseoVersion ?? catalog.paseoVersion;
   const errors = [];
-  if (!/^0\.(7|8)\.\d+(?:-[a-z0-9.-]+)?$/.test(version ?? "") || pkg.devDependencies?.["@getpaseo/plugin"] !== version) {
+  if (!/^0\.(7|8|9)\.\d+(?:-[a-z0-9.-]+)?$/.test(version ?? "") || pkg.devDependencies?.["@getpaseo/plugin"] !== version) {
     errors.push("exact Paseo dependency must match catalog.");
   }
   for (const name of ["@getpaseo/plugin", "@getpaseo/client"]) {
@@ -13,6 +13,9 @@ export function validatePaseoMetadata({ catalog, entry, pkg, manifest, locked })
   }
   if (version?.startsWith("0.8.") && manifest.requirements?.paseo !== "^0.8.0") {
     errors.push("migrated manifest must declare ^0.8.0.");
+  }
+  if (version?.startsWith("0.9.") && manifest.requirements?.paseo !== "^0.9.0") {
+    errors.push("migrated manifest must declare ^0.9.0.");
   }
   return { version, errors };
 }

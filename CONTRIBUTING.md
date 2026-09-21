@@ -11,9 +11,9 @@ npm ci
 npm run check
 ```
 
-Each `plugins/*` directory is independently installed. Read its manifest to identify the default runtime ID. All four sources target **0.8.0**: start with `index.client.tsx` and `index.server.ts`, then `client/`, `server/` and `shared/`. Do not share runtime code between plugins. Paseo supplies runtime modules; local npm dependencies are for development. Never add an ambient declaration to invent a Paseo API.
+Each `plugins/*` directory is independently installed. Read its manifest to identify the default runtime ID. All four sources target **0.9.0-beta.2**: start with `index.client.tsx` and `index.server.ts`, then `client/`, `server/` and `shared/`. Do not share runtime code between plugins. Paseo supplies runtime modules; local npm dependencies are for development. Never add an ambient declaration to invent a Paseo API.
 
-For **0.8.0** work, follow the [migration guide](docs/MIGRATION_0.8.md) and [tracking issue #77](https://github.com/NaruForge/Paseo-Plugin/issues/77). Use `index.client.ts[x]`, `index.server.ts[x]`, and `client/`, `server/`, `shared/`; delete the mixed entry when migrating. Import client hooks/types from `/client`, server contexts from `/server`, shared helpers from the SDK root, and host UI from `/client/react-native` or `/client/ui`. Match the target CLI's fresh scaffold and exact SDK declarations, including type-only runtime boundaries. The updated [capability reference](docs/plugin-capabilities/README.md) describes 0.8 APIs; it is not proof that current source runs in the app.
+For **0.9.0-beta.2** work, follow the [migration guide](docs/MIGRATION_0.9.md) and [tracking issue #121](https://github.com/NaruForge/Paseo-Plugin/issues/121). Use `index.client.ts[x]`, `index.server.ts[x]`, and `client/`, `server/`, `shared/`. Import client hooks/types from `/client`, server contexts from `/server`, shared helpers from the SDK root, and host UI from `/client/react-native` or `/client/ui`. Match the target CLI's fresh scaffold and exact SDK declarations, including type-only runtime boundaries. The updated [capability reference](docs/plugin-capabilities/README.md) describes 0.9 APIs; it is not proof that current source runs in the app.
 
 For one plugin:
 
@@ -35,7 +35,7 @@ paseo plugin ls
 paseo plugin logs branch-garden-dev
 ```
 
-Use [configuration guidance](docs/CONFIGURATION.md) for prerequisites. The commands above use source compatible with the target daemon; all four plugin sources target 0.8.0. Match each test daemon and app to the selected plugin/ref. For a remote 0.8 daemon, use the global form `paseo --host <target> plugin ls`. Verify both daemon and app versions. Remove temporary installations after verification; built-in 0.8 settings are deleted when their installation is removed.
+Use [configuration guidance](docs/CONFIGURATION.md) for prerequisites. The commands above use source compatible with the target daemon; all four plugin sources target 0.9.0-beta.2. Match each test daemon and app to the selected plugin/ref. For a remote daemon, use the global form `paseo --host <target> plugin ls`. Verify both daemon and app versions. Remove temporary installations after verification; built-in settings are deleted when their installation is removed.
 
 Follow [Design rules](docs/DESIGN.md). Report the impact grade, tested layouts/themes/states, and why other environments were omitted. Use actual UI screenshots; redact private project names, local paths, account details and tokens before attaching them. Label fixture renders as fixtures.
 

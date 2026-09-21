@@ -1,12 +1,12 @@
 # Command Deck
 
-Release **v0.1.0-rc.3** targets final **Paseo 0.8.0**. See [final-version checks and remaining runtime limits](../../docs/verification/paseo-0.8.0-release.md). Screenshots below show the installed Paseo 0.8.0 Windows app.
+Release **v0.1.0-rc.4** targets **Paseo 0.9.0-beta.2**. See [0.9 checks and remaining runtime limits](../../docs/verification/paseo-0.9.0-beta.2.md). Screenshots below show the installed Paseo 0.8.0 Windows app.
 
 ```sh
-paseo plugin add NaruForge/Paseo-Plugin:plugins/command-deck --ref v0.1.0-rc.3
+paseo plugin add NaruForge/Paseo-Plugin:plugins/command-deck --ref v0.1.0-rc.4
 ```
 
-Save PowerShell commands for a Project and run them from the Agent Composer or a Workspace panel. **Experimental, v0.1.0-rc.3; Windows hosts only.** Requires Paseo daemon/app/CLI **0.8.0**, PowerShell 7 on the daemon PATH, and the tools used by your commands (for example Node.js/npm).
+Save PowerShell commands for a Project and run them from the Agent Composer or a Workspace panel. **Experimental, v0.1.0-rc.4; Windows hosts only.** Requires Paseo daemon/app/CLI **0.9.0-beta.2**, PowerShell 7 on the daemon PATH, and the tools used by your commands (for example Node.js/npm).
 
 Source and Windows SDK checks are complete as described in the [verification record](../../docs/verification/command-deck-0.8-source.md). Backend installation/reload passed. The [Windows screenshot session](../../docs/verification/plugin-screenshots-0.8.0.md) covers the installed Settings and empty panel; command execution and mobile interaction remain outside that session. Existing verification reports for the other three plugins do not cover Command Deck.
 
@@ -26,9 +26,9 @@ Settings edits the Host-scoped command library for the selected Project. Save ch
 
 ## Install current source
 
-The v0.1.0-rc.3 collection includes this plugin. Use it with compatible **0.8.0 daemon, app and CLI** on a **Windows** host. Enable trusted plugins in the intended daemon’s **Settings → Plugins**.
+The v0.1.0-rc.4 collection includes this plugin. Use it with compatible **0.9.0-beta.2 daemon, app and CLI** on a **Windows** host. Enable trusted plugins in the intended daemon’s **Settings → Plugins**.
 
-Follow the [source checkout steps](../../README.md#evaluate-current-08-source), then run this in PowerShell from the repository root on the daemon host. npm is not needed just to install the existing source.
+Follow the [source checkout steps](../../README.md#evaluate-current-09-source), then run this in PowerShell from the repository root on the daemon host. npm is not needed just to install the existing source.
 
 ```powershell
 $repoRoot = (Resolve-Path .).Path
@@ -44,10 +44,10 @@ Open **Settings → Plugins → Command Deck**. An empty command list is normal 
 For Git source evaluation, choose a published commit containing this plugin that you have reviewed:
 
 ```powershell
-paseo plugin add NaruForge/Paseo-Plugin:plugins/command-deck --ref v0.1.0-rc.3
+paseo plugin add NaruForge/Paseo-Plugin:plugins/command-deck --ref v0.1.0-rc.4
 ```
 
-The command pins v0.1.0-rc.3. Command Deck is absent from `v0.1.0-rc.2`. This command is not evidence that Command Deck Git installation has been verified. The three existing plugins' Git path is recorded in the [Git source verification](../../docs/verification/paseo-0.8-git-source.md); Command Deck Git activation remains unverified. See [Git installation](../../docs/GIT_INSTALLATION.md).
+The command pins v0.1.0-rc.4. Command Deck is absent from `v0.1.0-rc.2`. This command is not evidence that Command Deck Git installation has been verified. See [Git installation](../../docs/GIT_INSTALLATION.md).
 
 ## Use
 

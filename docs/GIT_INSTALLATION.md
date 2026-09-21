@@ -1,17 +1,17 @@
 # Git source 설치와 업데이트
 
-현재 **v0.1.0-rc.3**은 Paseo **0.8.0 정식판**용 네 플러그인입니다. [정식판 검증 기록](verification/paseo-0.8.0-release.md)을 확인하고 daemon·app·CLI를 모두 0.8.0으로 맞추세요. beta.1은 새 Composer pill API와 호환되지 않습니다. 과거 `v0.1.0-rc.2`는 0.7.2용으로 보존합니다. 아래의 과거 Runtime·Git 검증은 당시 범위이며 정식 pill 변경을 검증한 결과가 아닙니다. 같은 컴퓨터의 개발에는 directory install/reload, 다른 daemon이나 PC 배포에는 Git source를 사용합니다.
+현재 **v0.1.0-rc.4**는 Paseo **0.9.0-beta.2**용 네 플러그인입니다. [0.9 검증 기록](verification/paseo-0.9.0-beta.2.md)을 확인하고 daemon·app·CLI를 모두 0.9.0-beta.2로 맞추세요. `^0.8.0` manifest는 0.9에서 거부됩니다. 과거 `v0.1.0-rc.3`는 0.8.0용, `v0.1.0-rc.2`는 0.7.2용으로 보존합니다. 같은 컴퓨터의 개발에는 directory install/reload, 다른 daemon이나 PC 배포에는 Git source를 사용합니다.
 
 ```powershell
-paseo plugin add NaruForge/Paseo-Plugin:plugins/branch-garden --ref v0.1.0-rc.3
-paseo plugin add NaruForge/Paseo-Plugin:plugins/provider-usage --ref v0.1.0-rc.3
-paseo plugin add NaruForge/Paseo-Plugin:plugins/prompt-palette --ref v0.1.0-rc.3
-paseo plugin add NaruForge/Paseo-Plugin:plugins/command-deck --ref v0.1.0-rc.3
+paseo plugin add NaruForge/Paseo-Plugin:plugins/branch-garden --ref v0.1.0-rc.4
+paseo plugin add NaruForge/Paseo-Plugin:plugins/provider-usage --ref v0.1.0-rc.4
+paseo plugin add NaruForge/Paseo-Plugin:plugins/prompt-palette --ref v0.1.0-rc.4
+paseo plugin add NaruForge/Paseo-Plugin:plugins/command-deck --ref v0.1.0-rc.4
 ```
 
 원하는 명령 하나만 선택합니다. 설치된 Settings를 보존하려면 업데이트 가능한 branch source에는 `plugin update`를 사용하세요. 고정 태그의 전환에 remove/re-add가 필요하면 아래 백업·복구 절차를 먼저 따릅니다.
 
-0.8의 runtime entry·SDK 경로·manifest 변경은 [이관 안내](MIGRATION_0.8.md)를 따릅니다. 아래 과거 0.7 설치 절차는 0.7.2 daemon/client 대상입니다. 정식 0.8.0에는 위 rc.3 명령을 사용합니다.
+0.9의 SDK·manifest 변경은 [이관 안내](MIGRATION_0.9.md)를 따릅니다. 0.8 runtime entry는 [0.8 이관](MIGRATION_0.8.md)에 보존합니다. 아래 과거 0.7 설치 절차는 0.7.2 daemon/client 대상입니다. 0.9에는 위 rc.4 명령을 사용합니다.
 
 > [!WARNING]
 > Paseo 플러그인은 신뢰된 비격리 코드입니다. 설치 전에 source와 대상 daemon을 확인하고, 전역 플러그인 switch가 꺼져 있으면 사용자의 명시적 승인 없이 켜지 마세요.
@@ -60,18 +60,18 @@ paseo plugin add NaruForge/Paseo-Plugin:plugins/branch-garden `
 
 ## 0.8 소스 Git 평가
 
-네 플러그인의 현재 소스는 main에 있습니다. `v0.1.0-rc.2`는 Paseo 0.7.2용 Branch Garden과 Provider Usage만 포함하며 Prompt Palette와 Command Deck은 없습니다. 0.8 평가에는 그 태그를 쓰지 마세요. 아래 rc.3 태그를 검토하고 정식 0.8.0 daemon/app에서 **명령 하나만** 선택하세요. 아래 명령을 실행하는 것 자체가 검증 완료는 아닙니다. 세 플러그인의 add/update/실패 복구 증거는 [0.8 Git 검증 기록](verification/paseo-0.8-git-source.md)에 있고, Command Deck Git 경로는 포함되지 않습니다.
+네 플러그인의 현재 소스는 main에 있습니다. `v0.1.0-rc.2`는 Paseo 0.7.2용 Branch Garden과 Provider Usage만 포함하며 Prompt Palette와 Command Deck은 없습니다. `v0.1.0-rc.3`는 0.8.0용입니다. 0.9 평가에는 그 태그들을 쓰지 마세요. 아래 rc.4 태그를 검토하고 0.9.0-beta.2 daemon/app에서 **명령 하나만** 선택하세요. 아래 명령을 실행하는 것 자체가 검증 완료는 아닙니다. 세 플러그인의 add/update/실패 복구 증거는 [0.8 Git 검증 기록](verification/paseo-0.8-git-source.md)에 있고, Command Deck Git 경로는 포함되지 않습니다.
 
 ```powershell
-paseo plugin add NaruForge/Paseo-Plugin:plugins/branch-garden --ref v0.1.0-rc.3
-paseo plugin add NaruForge/Paseo-Plugin:plugins/provider-usage --ref v0.1.0-rc.3
-paseo plugin add NaruForge/Paseo-Plugin:plugins/prompt-palette --ref v0.1.0-rc.3
-paseo plugin add NaruForge/Paseo-Plugin:plugins/command-deck --ref v0.1.0-rc.3
+paseo plugin add NaruForge/Paseo-Plugin:plugins/branch-garden --ref v0.1.0-rc.4
+paseo plugin add NaruForge/Paseo-Plugin:plugins/provider-usage --ref v0.1.0-rc.4
+paseo plugin add NaruForge/Paseo-Plugin:plugins/prompt-palette --ref v0.1.0-rc.4
+paseo plugin add NaruForge/Paseo-Plugin:plugins/command-deck --ref v0.1.0-rc.4
 ```
 
-위 명령은 `v0.1.0-rc.3` 태그를 고정합니다. 다른 ref를 선택하려면 해당 소스와 지원 버전을 먼저 검토하세요.
+위 명령은 `v0.1.0-rc.4` 태그를 고정합니다. 다른 ref를 선택하려면 해당 소스와 지원 버전을 먼저 검토하세요.
 
-현재 로컬 개발은 컬렉션 [0.8 평가](../README.md#evaluate-current-08-source)와 각 플러그인 가이드의 directory 설치를 사용합니다. 세 플러그인의 Git 활성화·업데이트·실패 복구는 [0.8 Git 검증 기록](verification/paseo-0.8-git-source.md)을 따르고, Command Deck Git 활성화는 아직 수행하지 않았습니다.
+현재 로컬 개발은 컬렉션 [0.9 평가](../README.md#evaluate-current-09-source)와 각 플러그인 가이드의 directory 설치를 사용합니다. 세 플러그인의 Git 활성화·업데이트·실패 복구는 [0.8 Git 검증 기록](verification/paseo-0.8-git-source.md)을 따르고, Command Deck Git 활성화는 아직 수행하지 않았습니다.
 
 ## Ref 선택
 
